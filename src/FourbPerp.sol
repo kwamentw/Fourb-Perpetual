@@ -11,7 +11,7 @@ contract FourbPerp {
     mapping(address => uint256) liquidity;
     mapping(address => Position) positionDetails;
 
-    uint256 constant MAX_UTILIZATION = 80;
+    uint256 immutable MAX_UTILIZATION = 80;
     uint256 s_totalLiquidity;
     uint256 s_totalOpenInterest;
 
@@ -53,8 +53,9 @@ contract FourbPerp {
     }
 
     function openPosition(uint256 _collateral, uint256 _size) external {
-        require(_collateral > 0, "Collateral cant be less than 1");
+        require(_collateral > 10, "Collateral cant be less than 1");
         require(_size > 0, "Size must be > 0");
+        require(_size >= (MAX_UTILIZATION * s_totalLiquidity) / 100);
         uint256 currentPrice = getPrice();
 
         Position memory _position = Position({
@@ -70,22 +71,61 @@ contract FourbPerp {
         s_totalOpenInterest = _size;
     }
 
-    function getPosition() public view returns (Position memory) {
-        return positionDetails[msg.sender];
+    function getPosition(address sender) public view returns (Position memory) {
+        return positionDetails[sender];
     }
 
     function increaseSize(uint256 amountToIncrease) external {
         require(amountToIncrease > 0, "Should be more than 0");
-        Position memory pos = getPosition();
+        Position memory pos = getPosition(msg.sender);
         pos.size += amountToIncrease;
         positionDetails[msg.sender] = pos;
         s_totalOpenInterest += amountToIncrease;
     }
 
+    function decreaseSize(uint256 amountToDecrease) external {
+        require(amountToDecrease > 0, "You cant decrease nothing");
+        Position memory pos = getPosition(msg.sender);
+        require(pos.size >= amountToDecrease);
+        pos.size -= amountToDecrease;
+        uint256 currentPrice = getPrice();
+        uint256 pnl;
+        if (pos.isLong) {
+            pnl = (currentPrice - pos.entryPrice) * amountToDecrease;
+        } else {
+            pnl = (pos.entryPrice - currentPrice) * amountToDecrease;
+        }
+        pos.collateral += pnl;
+        positionDetails[msg.sender] = pos;
+        s_totalOpenInterest -= amountToDecrease;
+    }
+
     function increaseCollateral(uint256 amountToIncrease) external {
         require(amountToIncrease > 0, "Should be greater than 0");
-        Position memory pos = getPosition();
+        require(msg.sender != address(0));
+        Position memory pos = getPosition(msg.sender);
         pos.size += amountToIncrease;
         positionDetails[msg.sender] = pos;
+    }
+
+    function decreaseCollateral(uint256 amountToDecrease) external {
+        require(amountToDecrease > 0, "You cannot decrease nothing");
+        Position memory pos = getPosition(msg.sender);
+        require(pos.collateral >= amountToDecrease);
+        pos.collateral -= amountToDecrease;
+        positionDetails[msg.sender] = pos;
+    }
+
+    function liquidate(address trader) external {
+        require(msg.sender != address(0));
+        Position memory pos = getPosition(trader);
+        require(pos.collateral > 0, "inavlid position cannot liquidate");
+        uint256 currentPrice = getPrice();
+        uint256 pnl = pos.isLong
+            ? (currentPrice - pos.entryPrice) * pos.size
+            : (pos.entryPrice - currentPrice) * pos.size;
+        pos.collateral += pnl;
+        token.transfer(trader, pos.collateral);
+        delete positionDetails[trader];
     }
 }
