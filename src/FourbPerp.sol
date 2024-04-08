@@ -125,6 +125,9 @@ contract FourbPerp {
             ? (currentPrice - pos.entryPrice) * pos.size
             : (pos.entryPrice - currentPrice) * pos.size;
         pos.collateral += pnl;
+        uint256 fee = (pos.collateral * 3) / 100;
+        pos.collateral -= fee;
+        token.transfer(msg.sender, fee);
         token.transfer(trader, pos.collateral);
         delete positionDetails[trader];
     }
