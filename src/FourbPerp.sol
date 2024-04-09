@@ -78,8 +78,11 @@ contract FourbPerp {
     function increaseSize(uint256 amountToIncrease) external {
         require(amountToIncrease > 0, "Should be more than 0");
         Position memory pos = getPosition(msg.sender);
+        uint256 positionFee = (amountToIncrease * 3) / 1000;
+        pos.collateral -= positionFee;
         pos.size += amountToIncrease;
         positionDetails[msg.sender] = pos;
+        token.transfer(address(this), positionFee);
         s_totalOpenInterest += amountToIncrease;
     }
 
@@ -87,6 +90,8 @@ contract FourbPerp {
         require(amountToDecrease > 0, "You cant decrease nothing");
         Position memory pos = getPosition(msg.sender);
         require(pos.size >= amountToDecrease);
+        uint256 positionFee = (amountToDecrease * 3) / 1000;
+        pos.collateral -= positionFee;
         pos.size -= amountToDecrease;
         uint256 currentPrice = getPrice();
         uint256 pnl;
@@ -97,6 +102,7 @@ contract FourbPerp {
         }
         pos.collateral += pnl;
         positionDetails[msg.sender] = pos;
+        token.transfer(address(this), positionFee);
         s_totalOpenInterest -= amountToDecrease;
     }
 
@@ -104,7 +110,7 @@ contract FourbPerp {
         require(amountToIncrease > 0, "Should be greater than 0");
         require(msg.sender != address(0));
         Position memory pos = getPosition(msg.sender);
-        pos.size += amountToIncrease;
+        pos.collateral += amountToIncrease;
         positionDetails[msg.sender] = pos;
     }
 
@@ -118,6 +124,7 @@ contract FourbPerp {
 
     function liquidate(address trader) external {
         require(msg.sender != address(0));
+        require(msg.sender != trader);
         Position memory pos = getPosition(trader);
         require(pos.collateral > 0, "inavlid position cannot liquidate");
         uint256 currentPrice = getPrice();
