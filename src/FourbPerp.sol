@@ -5,8 +5,11 @@ import {IERC20} from "lib/forge-std/src/interfaces/IERC20.sol";
 import {pricefeed} from "./PriceFeed.sol";
 
 contract FourbPerp {
+    event Update(uint256 timeSinceUpdate, bool isUpdate);
+
     pricefeed private PriceFeed;
     IERC20 private token;
+
     mapping(address => uint256) collateral;
     mapping(address => uint256) liquidity;
     mapping(address => Position) positionDetails;
@@ -21,6 +24,7 @@ contract FourbPerp {
         uint256 collateral;
         bool isLong;
         uint256 size;
+        uint256 timestamp;
     }
 
     function addLiquidity(uint256 amount) public {
@@ -63,8 +67,11 @@ contract FourbPerp {
             entryPrice: currentPrice,
             collateral: _collateral,
             isLong: true,
-            size: _size
+            size: _size,
+            timestamp: block.timestamp
         });
+
+        emit Update(_position.timestamp, true);
 
         positionDetails[msg.sender] = _position;
         collateral[msg.sender] = _collateral;
@@ -81,6 +88,11 @@ contract FourbPerp {
         Position memory pos = getPosition(msg.sender);
         uint256 positionFee = (amountToIncrease * 3) / 1000;
         uint256 borrowingFee = (10 * amountToIncrease) / 100;
+        uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
+            ? block.timestamp - pos.timestamp
+            : 0;
+
+        emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral -= positionFee;
         pos.size += amountToIncrease;
         sizeDelta += amountToIncrease;
@@ -101,11 +113,16 @@ contract FourbPerp {
         sizeDelta -= amountToDecrease;
         uint256 currentPrice = getPrice();
         uint256 pnl;
+        uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
+            ? block.timestamp - pos.timestamp
+            : 0;
+
         if (pos.isLong) {
             pnl = (currentPrice - pos.entryPrice) * amountToDecrease;
         } else {
             pnl = (pos.entryPrice - currentPrice) * amountToDecrease;
         }
+        emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral += pnl;
         positionDetails[msg.sender] = pos;
         token.transfer(address(this), positionFee);
@@ -116,6 +133,10 @@ contract FourbPerp {
         require(amountToIncrease > 0, "Should be greater than 0");
         require(msg.sender != address(0));
         Position memory pos = getPosition(msg.sender);
+        uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
+            ? block.timestamp - pos.timestamp
+            : 0;
+        emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral += amountToIncrease;
         positionDetails[msg.sender] = pos;
     }
@@ -124,6 +145,10 @@ contract FourbPerp {
         require(amountToDecrease > 0, "You cannot decrease nothing");
         Position memory pos = getPosition(msg.sender);
         require(pos.collateral >= amountToDecrease);
+        uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
+            ? block.timestamp - pos.timestamp
+            : 0;
+        emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral -= amountToDecrease;
         positionDetails[msg.sender] = pos;
     }
@@ -133,6 +158,10 @@ contract FourbPerp {
         require(msg.sender != trader);
         Position memory pos = getPosition(trader);
         require(pos.collateral > 0, "inavlid position cannot liquidate");
+        uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
+            ? block.timestamp - pos.timestamp
+            : 0;
+
         uint256 borrowingFee = ((pos.size - sizeDelta) * 10) / 100;
         uint256 currentPrice = getPrice();
         uint256 pnl = pos.isLong
@@ -140,6 +169,7 @@ contract FourbPerp {
             : (pos.entryPrice - currentPrice) * pos.size;
         pos.collateral += pnl;
         uint256 fee = (pos.collateral * 3) / 100;
+        emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral -= fee;
         token.transferFrom(msg.sender, address(this), borrowingFee);
         token.transfer(msg.sender, fee);
