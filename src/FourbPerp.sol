@@ -14,6 +14,7 @@ contract FourbPerp {
     uint256 immutable MAX_UTILIZATION = 80;
     uint256 s_totalLiquidity;
     uint256 s_totalOpenInterest;
+    uint256 private sizeDelta;
 
     struct Position {
         uint256 entryPrice;
@@ -79,9 +80,13 @@ contract FourbPerp {
         require(amountToIncrease > 0, "Should be more than 0");
         Position memory pos = getPosition(msg.sender);
         uint256 positionFee = (amountToIncrease * 3) / 1000;
+        uint256 borrowingFee = (10 * amountToIncrease) / 100;
         pos.collateral -= positionFee;
         pos.size += amountToIncrease;
+        sizeDelta += amountToIncrease;
         positionDetails[msg.sender] = pos;
+        token.transferFrom(msg.sender, address(this), borrowingFee);
+        borrowingFee -= borrowingFee;
         token.transfer(address(this), positionFee);
         s_totalOpenInterest += amountToIncrease;
     }
@@ -93,6 +98,7 @@ contract FourbPerp {
         uint256 positionFee = (amountToDecrease * 3) / 1000;
         pos.collateral -= positionFee;
         pos.size -= amountToDecrease;
+        sizeDelta -= amountToDecrease;
         uint256 currentPrice = getPrice();
         uint256 pnl;
         if (pos.isLong) {
@@ -127,6 +133,7 @@ contract FourbPerp {
         require(msg.sender != trader);
         Position memory pos = getPosition(trader);
         require(pos.collateral > 0, "inavlid position cannot liquidate");
+        uint256 borrowingFee = ((pos.size - sizeDelta) * 10) / 100;
         uint256 currentPrice = getPrice();
         uint256 pnl = pos.isLong
             ? (currentPrice - pos.entryPrice) * pos.size
@@ -134,6 +141,7 @@ contract FourbPerp {
         pos.collateral += pnl;
         uint256 fee = (pos.collateral * 3) / 100;
         pos.collateral -= fee;
+        token.transferFrom(msg.sender, address(this), borrowingFee);
         token.transfer(msg.sender, fee);
         token.transfer(trader, pos.collateral);
         delete positionDetails[trader];
