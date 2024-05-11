@@ -32,7 +32,7 @@ contract FourbPerp {
         require(msg.sender != address(0));
 
         s_totalLiquidity += amount;
-        liquidity[msg.sender] = amount;
+        liquidity[msg.sender] += amount;
         token.transferFrom(msg.sender, address(this), amount);
     }
 
