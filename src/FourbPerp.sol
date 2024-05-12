@@ -11,12 +11,12 @@ contract FourbPerp {
     IERC20 private token;
 
     mapping(address => uint256) collateral;
-    mapping(address => uint256) liquidity;
+    mapping(address => uint256) public liquidity;
     mapping(address => Position) positionDetails;
 
     uint256 immutable MAX_UTILIZATION = 80;
-    uint256 s_totalLiquidity;
-    uint256 s_totalOpenInterest;
+    uint256 public s_totalLiquidity;
+    uint256 public s_totalOpenInterest;
     uint256 private sizeDelta;
 
     struct Position {
@@ -27,9 +27,13 @@ contract FourbPerp {
         uint256 timestamp;
     }
 
+    constructor(address _token) {
+        token = IERC20(_token);
+    }
+
     function addLiquidity(uint256 amount) public {
-        require(amount > 0, "You can's supply zero liquidity");
-        require(msg.sender != address(0));
+        require(amount > 0, "You can't supply zero liquidity");
+        require(msg.sender != address(0), "Zero adddress");
 
         s_totalLiquidity += amount;
         liquidity[msg.sender] += amount;
@@ -39,15 +43,20 @@ contract FourbPerp {
     function removeLiquidity(uint256 amount) public {
         require(amount > 0);
         require(
-            liquidity[msg.sender] == amount,
+            liquidity[msg.sender] >= amount,
             "You have no liquidity in this pool"
         );
-        require(
-            amount < s_totalOpenInterest,
-            "Can't remove liquidity reserves"
-        );
+        // require(
+        //     amount < s_totalOpenInterest,
+        //     "Can't remove liquidity reserves"
+        // );
         require(amount < s_totalLiquidity * MAX_UTILIZATION);
-        delete liquidity[msg.sender];
+        if (amount == liquidity[msg.sender]) {
+            delete liquidity[msg.sender];
+        } else {
+            liquidity[msg.sender] -= amount;
+        }
+
         s_totalLiquidity -= amount;
         token.transfer(msg.sender, amount);
     }
@@ -58,8 +67,8 @@ contract FourbPerp {
     }
 
     function openPosition(uint256 _collateral, uint256 _size) external {
-        require(_collateral > 10, "Collateral cant be less than 1");
-        require(_size > 0, "Size must be > 0");
+        require(_collateral > 10, "Collateral can't be less than 10");
+        require(_size > 0, "Postion Size must be > 0");
         require(_size >= (MAX_UTILIZATION * s_totalLiquidity) / 100);
         uint256 currentPrice = getPrice();
 
@@ -84,10 +93,12 @@ contract FourbPerp {
     }
 
     function increaseSize(uint256 amountToIncrease) external {
+        // try check whether size is in dollars or tokens
+        // check whether position is still healthy enough to increase
         require(amountToIncrease > 0, "Should be more than 0");
         Position memory pos = getPosition(msg.sender);
-        uint256 positionFee = (amountToIncrease * 3) / 1000;
-        uint256 borrowingFee = (10 * amountToIncrease) / 100;
+        uint256 positionFee = (amountToIncrease * 30) / 10_000;
+        uint256 borrowingFee = (1000 * amountToIncrease) / 10_000;
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
@@ -138,6 +149,7 @@ contract FourbPerp {
             : 0;
         emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral += amountToIncrease;
+        token.transferFrom(msg.sender, address(this), amountToIncrease);
         positionDetails[msg.sender] = pos;
     }
 
@@ -150,6 +162,7 @@ contract FourbPerp {
             : 0;
         emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral -= amountToDecrease;
+        token.transferFrom(address(this), msg.sender, amountToDecrease);
         positionDetails[msg.sender] = pos;
     }
 
