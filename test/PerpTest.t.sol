@@ -81,13 +81,111 @@ contract PerpTest is Test {
     }
 
     function test_increaseSize() public {
-        test_OpenPositon();
-
         vm.startPrank(address(39));
-        perp.increaseSize(10e18);
+        token.mint(address(39), 25e18);
+        perp.openPosition(10e18, 100e18);
+
+        assertEq(perp.collateral(address(39)), 10e18);
+
+        perp.increaseSize(20e18);
+
         vm.stopPrank();
 
-        assertGt(perp.collateral(address(39)), 100e18);
+        assertEq(perp.getPostionSize(address(39)), 120e18);
+    }
+
+    function test_decreaseSize() public {
+        vm.startPrank(address(39));
+        token.mint(address(39), 25e18);
+        perp.openPosition(10e18, 100e18);
+
+        assertEq(perp.collateral(address(39)), 10e18);
+
+        perp.increaseSize(20e18);
+        assertEq(perp.getPostionSize(address(39)), 120e18);
+        console2.log(
+            "remaining collateral: ",
+            perp.getPostionSize(address(39))
+        );
+
+        perp.decreaseSize(40e18);
+        assertEq(perp.getPostionSize(address(39)), 80e18);
+
+        vm.stopPrank();
+
+        console2.log("remaining collateral: ", perp.collateral(address(39)));
+    }
+
+    function test_increaseCollateral() public {
+        vm.startPrank(address(39));
+        token.mint(address(39), 25e18);
+        perp.openPosition(10e18, 100e18);
+
+        assertEq(perp.collateral(address(39)), 10e18);
+
+        perp.increaseSize(20e18);
+        assertEq(perp.getPostionSize(address(39)), 120e18);
+
+        perp.decreaseSize(40e18);
+        assertEq(perp.getPostionSize(address(39)), 80e18);
+
+        uint256 currentCollateral = perp.getPositionCollateral(address(39));
+
+        vm.stopPrank();
+
+        vm.prank(address(39));
+        perp.increaseCollateral(10e18);
+
+        console2.log(
+            "remaining collateral: ",
+            perp.getPositionCollateral(address(39))
+        );
+
+        assertEq(
+            perp.getPositionCollateral(address(39)),
+            currentCollateral + 10e18
+        );
+    }
+
+    function test_decreaseCollateral() public {
+        vm.startPrank(address(39));
+        token.mint(address(39), 25e18);
+        perp.openPosition(15e18, 100e18);
+
+        assertEq(perp.collateral(address(39)), 15e18);
+
+        uint256 currentCollateral = perp.getPositionCollateral(address(39));
+
+        vm.stopPrank();
+
+        vm.prank(address(39));
+        perp.decreaseCollateral(7e18);
+
+        assertEq(
+            perp.getPositionCollateral(address(39)),
+            currentCollateral - 7e18
+        );
+
+        console2.log(
+            "Decreased collateral is: ",
+            perp.getPositionCollateral(address(39))
+        );
+    }
+
+    function test_liquidate() public {
+        vm.startPrank(address(39));
+        token.mint(address(39), 25e18);
+        perp.openPosition(15e18, 100e18);
+
+        assertEq(perp.collateral(address(39)), 15e18);
+
+        vm.stopPrank();
+
+        vm.startPrank(address(45));
+        perp.liquidate(address(39));
+
+        assertEq(perp.getPositionCollateral(address(39)), 0);
+        vm.stopPrank();
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -123,5 +221,49 @@ contract PerpTest is Test {
         vm.stopPrank();
 
         assertEq(perp.s_totalLiquidity(), totLiquidity);
+    }
+
+    function testFuzz_openPosition(uint256 collateral, uint256 size) public {
+        collateral = bound(collateral, 11, (type(uint256).max / 1000000));
+        vm.assume(size > 0);
+
+        vm.startPrank(address(25));
+        token.mint(address(25), collateral);
+
+        perp.openPosition(collateral, size);
+
+        assertEq(perp.getPositionCollateral(address(25)), collateral);
+        assertEq(perp.getPostionSize(address(25)), size);
+
+        vm.stopPrank();
+    }
+
+    function testFuzz_increaseSize(uint256 sizeIncrease) public {
+        sizeIncrease = bound(sizeIncrease, 1e18, (type(uint256).max) / 1e18);
+
+        vm.startPrank(address(95));
+        token.mint(address(95), 50e18);
+        perp.openPosition(50e18, 85e18);
+
+        perp.increaseSize(sizeIncrease);
+        uint256 currSize = 85e18 + sizeIncrease;
+
+        vm.stopPrank();
+
+        assertEq(perp.getPostionSize(address(95)), currSize);
+    }
+
+    function testFuzz_decreaseSize(uint256 sizeDecrease) public {
+        sizeDecrease = bound(sizeDecrease, 1, 80_000e18);
+        vm.startPrank(address(115));
+        token.mint(address(115), 500e18);
+        perp.openPosition(500e18, 90000e18);
+        vm.stopPrank();
+
+        vm.prank(address(115));
+        perp.decreaseSize(sizeDecrease);
+        uint256 currSize = 90000e18 - sizeDecrease;
+
+        assertEq(perp.getPostionSize(address(115)), currSize);
     }
 }

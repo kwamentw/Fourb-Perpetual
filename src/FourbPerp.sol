@@ -61,8 +61,8 @@ contract FourbPerp {
         token.transfer(msg.sender, amount);
     }
 
-    function getPrice() public view returns (uint256) {
-        uint256 currentPrice = PriceFeed.getPrice();
+    function getPrice() public pure returns (uint256) {
+        uint256 currentPrice = 1; /*PriceFeed.getPrice();*/
         return currentPrice;
     }
 
@@ -70,7 +70,7 @@ contract FourbPerp {
         require(_collateral > 10, "Collateral can't be less than 10");
         require(_size > 0, "Postion Size must be > 0");
         require(_size >= (MAX_UTILIZATION * s_totalLiquidity) / 100);
-        // its supposed to getPrice()
+        // its supposed to getPrice() from chainlink
         uint256 currentPrice = 1;
 
         Position memory _position = Position({
@@ -84,6 +84,7 @@ contract FourbPerp {
         emit Update(_position.timestamp, true);
 
         positionDetails[msg.sender] = _position;
+        // i dont update this in other functions
         collateral[msg.sender] = _collateral;
         token.transferFrom(msg.sender, address(this), _collateral);
         s_totalOpenInterest = _size;
@@ -98,20 +99,20 @@ contract FourbPerp {
         // check whether position is still healthy enough to increase
         require(amountToIncrease > 0, "Should be more than 0");
         Position memory pos = getPosition(msg.sender);
-        uint256 positionFee = (amountToIncrease * 30) / 10_000;
-        uint256 borrowingFee = (1000 * amountToIncrease) / 10_000;
+        // uint256 positionFee = (amountToIncrease * 30) / 10_000;
+        // uint256 borrowingFee = (1000 * amountToIncrease) / 10_000;
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
 
         emit Update(secondsSincePositionWasUpdated, true);
-        pos.collateral -= positionFee;
+        // pos.collateral -= positionFee;
         pos.size += amountToIncrease;
         sizeDelta += amountToIncrease;
         positionDetails[msg.sender] = pos;
-        token.transferFrom(msg.sender, address(this), borrowingFee);
-        borrowingFee -= borrowingFee;
-        token.transfer(address(this), positionFee);
+        // token.transferFrom(msg.sender, address(this), borrowingFee);
+        // borrowingFee -= borrowingFee;
+        // token.transfer(address(this), positionFee);
         s_totalOpenInterest += amountToIncrease;
     }
 
@@ -122,20 +123,20 @@ contract FourbPerp {
         uint256 positionFee = (amountToDecrease * 3) / 1000;
         pos.collateral -= positionFee;
         pos.size -= amountToDecrease;
-        sizeDelta -= amountToDecrease;
-        uint256 currentPrice = getPrice();
-        uint256 pnl;
-        uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
-            ? block.timestamp - pos.timestamp
-            : 0;
+        // sizeDelta -= amountToDecrease;
+        // uint256 currentPrice = getPrice();
+        // uint256 pnl;
+        // uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
+        //     ? block.timestamp - pos.timestamp
+        //     : 0;
 
-        if (pos.isLong) {
-            pnl = (currentPrice - pos.entryPrice) * amountToDecrease;
-        } else {
-            pnl = (pos.entryPrice - currentPrice) * amountToDecrease;
-        }
-        emit Update(secondsSincePositionWasUpdated, true);
-        pos.collateral += pnl;
+        // if (pos.isLong) {
+        //     pnl = (currentPrice - pos.entryPrice) * amountToDecrease;
+        // } else {
+        //     pnl = (pos.entryPrice - currentPrice) * amountToDecrease;
+        // }
+        // emit Update(secondsSincePositionWasUpdated, true);
+        // pos.collateral += pnl;
         positionDetails[msg.sender] = pos;
         token.transfer(address(this), positionFee);
         s_totalOpenInterest -= amountToDecrease;
@@ -148,7 +149,6 @@ contract FourbPerp {
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
-
         emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral += amountToIncrease;
         token.transferFrom(msg.sender, address(this), amountToIncrease);
@@ -177,18 +177,28 @@ contract FourbPerp {
             ? block.timestamp - pos.timestamp
             : 0;
 
-        uint256 borrowingFee = ((pos.size - sizeDelta) * 10) / 100;
-        uint256 currentPrice = getPrice();
-        uint256 pnl = pos.isLong
-            ? (currentPrice - pos.entryPrice) * pos.size
-            : (pos.entryPrice - currentPrice) * pos.size;
-        pos.collateral += pnl;
+        // uint256 borrowingFee = ((pos.size - sizeDelta) * 10) / 1000;
+        // uint256 currentPrice = getPrice();
+        // uint256 pnl = pos.isLong
+        //     ? (currentPrice - pos.entryPrice) * pos.size
+        //     : (pos.entryPrice - currentPrice) * pos.size;
+        // pos.collateral += pnl;
         uint256 fee = (pos.collateral * 3) / 100;
         emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral -= fee;
-        token.transferFrom(msg.sender, address(this), borrowingFee);
+        // token.transferFrom(msg.sender, address(this), borrowingFee);
         token.transfer(msg.sender, fee);
         token.transfer(trader, pos.collateral);
         delete positionDetails[trader];
+    }
+
+    function getPostionSize(address sender) external view returns (uint256) {
+        return positionDetails[sender].size;
+    }
+
+    function getPositionCollateral(
+        address sender
+    ) external view returns (uint256) {
+        return positionDetails[sender].collateral;
     }
 }
