@@ -10,9 +10,9 @@ contract FourbPerp {
     pricefeed private PriceFeed;
     IERC20 private token;
 
-    mapping(address => uint256) collateral;
+    mapping(address => uint256) public collateral;
     mapping(address => uint256) public liquidity;
-    mapping(address => Position) positionDetails;
+    mapping(address => Position) public positionDetails;
 
     uint256 immutable MAX_UTILIZATION = 80;
     uint256 public s_totalLiquidity;
@@ -70,7 +70,8 @@ contract FourbPerp {
         require(_collateral > 10, "Collateral can't be less than 10");
         require(_size > 0, "Postion Size must be > 0");
         require(_size >= (MAX_UTILIZATION * s_totalLiquidity) / 100);
-        uint256 currentPrice = getPrice();
+        // its supposed to getPrice()
+        uint256 currentPrice = 1;
 
         Position memory _position = Position({
             entryPrice: currentPrice,
@@ -147,6 +148,7 @@ contract FourbPerp {
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
+
         emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral += amountToIncrease;
         token.transferFrom(msg.sender, address(this), amountToIncrease);

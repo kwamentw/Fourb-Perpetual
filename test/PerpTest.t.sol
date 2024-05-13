@@ -65,6 +65,31 @@ contract PerpTest is Test {
         assertEq(perp.s_totalLiquidity(), 18e18);
     }
 
+    function test_getPrice() public view {
+        uint256 price = perp.getPrice();
+        assertGt(price, 0);
+    }
+
+    function test_OpenPositon() public {
+        vm.startPrank(address(39));
+        token.mint(address(39), 11e18);
+        perp.openPosition(10e18, 100e18);
+
+        assertEq(perp.collateral(address(39)), 10e18);
+
+        vm.stopPrank();
+    }
+
+    function test_increaseSize() public {
+        test_OpenPositon();
+
+        vm.startPrank(address(39));
+        perp.increaseSize(10e18);
+        vm.stopPrank();
+
+        assertGt(perp.collateral(address(39)), 100e18);
+    }
+
     //////////////////////////////////////////////////////////////////////////////
     ///////////////////          F U Z Z -- T E S TS            //////////////////
     //////////////////////////////////////////////////////////////////////////////
