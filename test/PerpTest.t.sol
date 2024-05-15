@@ -266,4 +266,40 @@ contract PerpTest is Test {
 
         assertEq(perp.getPostionSize(address(115)), currSize);
     }
+
+    function testFuzz_increaseCollateral(uint256 amountToIncrease) public {
+        amountToIncrease = bound(amountToIncrease, 1, type(uint128).max);
+        vm.startPrank(address(47));
+        token.mint(address(47), 30e18);
+        perp.openPosition(30e18, 100e18);
+
+        assertEq(perp.getPostionSize(address(47)), 100e18);
+        assertEq(perp.getPositionCollateral(address(47)), 30e18);
+
+        uint256 oldCollateral = perp.getPositionCollateral(address(47));
+        token.mint(address(47), amountToIncrease);
+        perp.increaseCollateral(amountToIncrease);
+        uint256 newCollateral = oldCollateral + amountToIncrease;
+
+        vm.stopPrank();
+
+        assertEq(perp.getPositionCollateral(address(47)), newCollateral);
+    }
+
+    function testFuzz_decreaseCollateral(uint256 amountToDecrease) public {
+        amountToDecrease = bound(amountToDecrease, 1, 100e18);
+        vm.startPrank(address(1));
+        token.mint(address(1), 100e18);
+        perp.openPosition(100e18, 1000e18);
+
+        assertEq(perp.getPositionCollateral(address(1)), 100e18);
+
+        uint256 oldCollateral = perp.getPositionCollateral(address(1));
+        perp.decreaseCollateral(amountToDecrease);
+        uint256 newCollateral = oldCollateral - amountToDecrease;
+
+        assertEq(perp.getPositionCollateral(address(1)), newCollateral);
+
+        vm.stopPrank();
+    }
 }
