@@ -302,4 +302,49 @@ contract PerpTest is Test {
 
         vm.stopPrank();
     }
+
+    /**
+     * Fuzzing Liquidate function
+     */
+    function testFuzz_Liquidate(uint256 fuzzIndex) public {
+        // opening 4 positions with 4 different addresses so i can fuzz liquidate
+        vm.startPrank(address(1));
+        token.mint(address(1), 200e18);
+        perp.openPosition(200e18, 2000e18);
+        vm.stopPrank();
+
+        vm.startPrank(address(2));
+        token.mint(address(2), 300e18);
+        perp.openPosition(300e18, 3000e18);
+        vm.stopPrank();
+
+        vm.startPrank(address(3));
+        token.mint(address(3), 400e18);
+        perp.openPosition(400e18, 4000e18);
+        vm.stopPrank();
+
+        vm.startPrank(address(4));
+        token.mint(address(4), 500e18);
+        perp.openPosition(500e18, 5000e18);
+        vm.stopPrank();
+
+        // trying to bound fuzzer to the open positions
+        address[4] memory addresses = [
+            address(1),
+            address(2),
+            address(3),
+            address(4)
+        ];
+        address currentAddress;
+        currentAddress = addresses[bound(fuzzIndex, 0, addresses.length - 1)];
+
+        // Liquidator calling liquidate
+        vm.startPrank(address(44));
+        perp.liquidate(currentAddress);
+        vm.stopPrank();
+
+        // checking whether shit gets liquidated
+        assertEq(perp.getPositionCollateral(currentAddress), 0);
+        assertGt(token.balanceOf(currentAddress), 0);
+    }
 }
