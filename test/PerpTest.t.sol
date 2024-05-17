@@ -15,6 +15,10 @@ contract PerpTest is Test {
         perp = new FourbPerp(address(token));
     }
 
+    /**
+     * Function that adds liquidity to the protocol
+     * It makes testing modular and easier
+     */
     function addLiquidity() public {
         token.mint(msg.sender, 10e18);
         vm.startPrank(msg.sender);
@@ -37,6 +41,9 @@ contract PerpTest is Test {
     ///////////////////          U N I T -- T E S TS            //////////////////
     //////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Testing add liquidity
+     */
     function testAddLiquidity() public {
         addLiquidity();
 
@@ -47,6 +54,9 @@ contract PerpTest is Test {
         assertEq(perp.s_totalLiquidity(), 25e18);
     }
 
+    /**
+     * Testing remove liquidity
+     */
     function testRemoveLiquidity() public {
         addLiquidity();
 
@@ -65,11 +75,17 @@ contract PerpTest is Test {
         assertEq(perp.s_totalLiquidity(), 18e18);
     }
 
+    /**
+     * Testing to see whether chainlink price feed working
+     */
     function test_getPrice() public view {
         uint256 price = perp.getPrice();
         assertGt(price, 0);
     }
 
+    /**
+     * testing to see whether a user can open a position succesfully
+     */
     function test_OpenPositon() public {
         vm.startPrank(address(39));
         token.mint(address(39), 11e18);
@@ -80,6 +96,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Unit testing the increaseSize function
+     */
     function test_increaseSize() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
@@ -94,6 +113,9 @@ contract PerpTest is Test {
         assertEq(perp.getPostionSize(address(39)), 120e18);
     }
 
+    /**
+     * Unit testing the decreaseSize function
+     */
     function test_decreaseSize() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
@@ -116,6 +138,9 @@ contract PerpTest is Test {
         console2.log("remaining collateral: ", perp.collateral(address(39)));
     }
 
+    /**
+     * Unit testing increase collateral to see whether it works
+     */
     function test_increaseCollateral() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
@@ -147,6 +172,9 @@ contract PerpTest is Test {
         );
     }
 
+    /**
+     * Unit testing decreaseCollateral to see whether it works
+     */
     function test_decreaseCollateral() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
@@ -172,6 +200,9 @@ contract PerpTest is Test {
         );
     }
 
+    /**
+     * Unit test for liquidate
+     */
     function test_liquidate() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
@@ -192,6 +223,10 @@ contract PerpTest is Test {
     ///////////////////          F U Z Z -- T E S TS            //////////////////
     //////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Fuzzing AddLiquidity
+     * @param amount amount to fuzz
+     */
     function testFuzz_AddLiquidity(uint256 amount) public {
         // vm.assume(amount < 2000e18 && amount != 0);
         amount = bound(amount, 1, 200e18);
@@ -206,6 +241,9 @@ contract PerpTest is Test {
         assertEq(perp.s_totalLiquidity(), totLiquidity);
     }
 
+    /**
+     * Fuzzing remove liquidity
+     */
     function testFuzz_removeLiquidity(uint256 amount) public {
         amount = bound(amount, 1e18, 200e18);
         token.mint(address(44), amount);
@@ -223,6 +261,11 @@ contract PerpTest is Test {
         assertEq(perp.s_totalLiquidity(), totLiquidity);
     }
 
+    /**
+     * Fuzzing openPosition function
+     * @param collateral param 1 to fuzz
+     * @param size param 2 to fuzz
+     */
     function testFuzz_openPosition(uint256 collateral, uint256 size) public {
         collateral = bound(collateral, 11, (type(uint256).max / 1000000));
         vm.assume(size > 0);
@@ -238,6 +281,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Fuzzing increaseSize
+     */
     function testFuzz_increaseSize(uint256 sizeIncrease) public {
         sizeIncrease = bound(sizeIncrease, 1e18, (type(uint256).max) / 1e18);
 
@@ -253,6 +299,10 @@ contract PerpTest is Test {
         assertEq(perp.getPostionSize(address(95)), currSize);
     }
 
+    /**
+     * Fuzzing decreaseSize
+     * @param sizeDecrease param to fuzz
+     */
     function testFuzz_decreaseSize(uint256 sizeDecrease) public {
         sizeDecrease = bound(sizeDecrease, 1, 80_000e18);
         vm.startPrank(address(115));
@@ -267,6 +317,10 @@ contract PerpTest is Test {
         assertEq(perp.getPostionSize(address(115)), currSize);
     }
 
+    /**
+     * Fuzzing increaseCollateral
+     * @param amountToIncrease param to fuzz
+     */
     function testFuzz_increaseCollateral(uint256 amountToIncrease) public {
         amountToIncrease = bound(amountToIncrease, 1, type(uint128).max);
         vm.startPrank(address(47));
@@ -286,6 +340,9 @@ contract PerpTest is Test {
         assertEq(perp.getPositionCollateral(address(47)), newCollateral);
     }
 
+    /**
+     * Fuzzing amountCOllateral to decrese
+     */
     function testFuzz_decreaseCollateral(uint256 amountToDecrease) public {
         amountToDecrease = bound(amountToDecrease, 1, 100e18);
         vm.startPrank(address(1));

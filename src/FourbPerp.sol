@@ -31,6 +31,10 @@ contract FourbPerp {
         token = IERC20(_token);
     }
 
+    /**
+     * Adds Liquidity to the pool
+     * @param amount amount to add
+     */
     function addLiquidity(uint256 amount) public {
         require(amount > 0, "You can't supply zero liquidity");
         require(msg.sender != address(0), "Zero adddress");
@@ -40,6 +44,9 @@ contract FourbPerp {
         token.transferFrom(msg.sender, address(this), amount);
     }
 
+    /**
+     * LPs can use this to remove liquidity fromt he pool
+     */
     function removeLiquidity(uint256 amount) public {
         require(amount > 0);
         require(
@@ -61,11 +68,17 @@ contract FourbPerp {
         token.transfer(msg.sender, amount);
     }
 
+    /**
+     * Getting price from chainlink data feed
+     */
     function getPrice() public pure returns (uint256) {
         uint256 currentPrice = 1; /*PriceFeed.getPrice();*/
         return currentPrice;
     }
 
+    /**
+     * Opens a new position
+     */
     function openPosition(uint256 _collateral, uint256 _size) external {
         require(_collateral > 10, "Collateral can't be less than 10");
         require(_size > 0, "Postion Size must be > 0");
@@ -90,10 +103,16 @@ contract FourbPerp {
         s_totalOpenInterest = _size;
     }
 
+    /**
+     * View function to get position details of a specified sender
+     */
     function getPosition(address sender) public view returns (Position memory) {
         return positionDetails[sender];
     }
 
+    /**
+     * To increase the size of your position
+     */
     function increaseSize(uint256 amountToIncrease) external {
         // try check whether size is in dollars or tokens
         // check whether position is still healthy enough to increase
@@ -116,6 +135,9 @@ contract FourbPerp {
         s_totalOpenInterest += amountToIncrease;
     }
 
+    /**
+     * To decrease the size of your position
+     */
     function decreaseSize(uint256 amountToDecrease) external {
         require(amountToDecrease > 0, "You cant decrease nothing");
         Position memory pos = getPosition(msg.sender);
@@ -142,6 +164,9 @@ contract FourbPerp {
         s_totalOpenInterest -= amountToDecrease;
     }
 
+    /**
+     * to increase the size of your collateral
+     */
     function increaseCollateral(uint256 amountToIncrease) external {
         require(amountToIncrease > 0, "Should be greater than 0");
         require(msg.sender != address(0));
@@ -155,6 +180,9 @@ contract FourbPerp {
         positionDetails[msg.sender] = pos;
     }
 
+    /**
+     * TO decrease the size of your collateral
+     */
     function decreaseCollateral(uint256 amountToDecrease) external {
         require(amountToDecrease > 0, "You cannot decrease nothing");
         Position memory pos = getPosition(msg.sender);
@@ -168,6 +196,9 @@ contract FourbPerp {
         positionDetails[msg.sender] = pos;
     }
 
+    /**
+     *  LPs or external actors can liquidate you when your position become liquidatable
+     */
     function liquidate(address trader) external {
         require(msg.sender != address(0));
         require(msg.sender != trader);
