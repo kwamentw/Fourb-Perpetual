@@ -223,13 +223,51 @@ contract FourbPerp {
         delete positionDetails[trader];
     }
 
+    /**
+     * FUnction to get position size
+     */
     function getPostionSize(address sender) external view returns (uint256) {
         return positionDetails[sender].size;
     }
 
+    /**
+     * Function to get collateral of a position
+     */
     function getPositionCollateral(
         address sender
     ) external view returns (uint256) {
         return positionDetails[sender].collateral;
     }
+
+    /**
+     * Leverage
+     * mostly 50% of your deposited amount thats what is recommended
+     * require lev < max lev
+     * lev = tokenamt * avgtokenprice/collateral
+     */
+    function maxUtilization() internal returns (bool) {}
+
+    /**
+     * Borrowing fees
+     * this is time dependent
+     */
+    function calcBorrowingFees() internal returns (uint256) {}
+
+    /**
+     * returns Profit / loss figures for long & short
+     * pnl = current price - entryprice
+     */
+    function calcPnL() internal returns (int256) {}
+
+    /**
+     * check postion's health
+     */
+    function isPositionLiquidatable() public returns(bool){}
+
+    /**
+     * Total profit/loss made a whole for the protocol
+     */
+    function totalPnL() internal returns (int256) {}
+
+    function closePosition() external{}
 }
