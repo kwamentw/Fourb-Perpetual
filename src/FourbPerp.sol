@@ -6,6 +6,12 @@ import {pricefeed} from "./PriceFeed.sol";
 
 contract FourbPerp {
     event Update(uint256 timeSinceUpdate, bool isUpdate);
+    event PositionLiquidated(address liquidated, uint256 collateral);
+    event PositionIncrease(uint256 amountToIncrease, bool isCollateral);
+    event PositionDecrease(uint256 amountToDecrease, bool isCollateral);
+    event PositionOpened(address sender, uint256 positionSize, bool isLOng);
+    event LiquidityAdded(address liquidityProvider, uint256 amount);
+    event LiquidityRemoved(address liquidityProvider, uint256 amount);
 
     pricefeed private PriceFeed;
     IERC20 private token;
@@ -39,6 +45,8 @@ contract FourbPerp {
         require(amount > 0, "You can't supply zero liquidity");
         require(msg.sender != address(0), "Zero adddress");
 
+        emit LiquidityAdded(msg.sender, amount);
+
         s_totalLiquidity += amount;
         liquidity[msg.sender] += amount;
         token.transferFrom(msg.sender, address(this), amount);
@@ -58,6 +66,9 @@ contract FourbPerp {
         //     "Can't remove liquidity reserves"
         // );
         require(amount < s_totalLiquidity * MAX_UTILIZATION);
+
+        emit LiquidityRemoved(msg.sender, amount);
+
         if (amount == liquidity[msg.sender]) {
             delete liquidity[msg.sender];
         } else {
@@ -95,6 +106,7 @@ contract FourbPerp {
         });
 
         emit Update(_position.timestamp, true);
+        emit PositionOpened(msg.sender, _size, true);
 
         positionDetails[msg.sender] = _position;
         // i dont update this in other functions
@@ -125,6 +137,7 @@ contract FourbPerp {
             : 0;
 
         emit Update(secondsSincePositionWasUpdated, true);
+        emit PositionIncrease(amountToIncrease, false);
         // pos.collateral -= positionFee;
         pos.size += amountToIncrease;
         sizeDelta += amountToIncrease;
@@ -157,8 +170,9 @@ contract FourbPerp {
         // } else {
         //     pnl = (pos.entryPrice - currentPrice) * amountToDecrease;
         // }
-        // emit Update(secondsSincePositionWasUpdated, true);
+        //    emit Update(secondsSincePositionWasUpdated, true);
         // pos.collateral += pnl;
+        emit PositionDecrease(amountToDecrease, false);
         positionDetails[msg.sender] = pos;
         token.transfer(address(this), positionFee);
         s_totalOpenInterest -= amountToDecrease;
@@ -170,6 +184,8 @@ contract FourbPerp {
     function increaseCollateral(uint256 amountToIncrease) external {
         require(amountToIncrease > 0, "Should be greater than 0");
         require(msg.sender != address(0));
+
+        emit PositionIncrease(amountToIncrease, true);
         Position memory pos = getPosition(msg.sender);
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
@@ -187,6 +203,7 @@ contract FourbPerp {
         require(amountToDecrease > 0, "You cannot decrease nothing");
         Position memory pos = getPosition(msg.sender);
         require(pos.collateral >= amountToDecrease);
+        emit PositionDecrease(amountToDecrease, true);
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
@@ -216,6 +233,7 @@ contract FourbPerp {
         // pos.collateral += pnl;
         uint256 fee = (pos.collateral * 3) / 100;
         emit Update(secondsSincePositionWasUpdated, true);
+        emit PositionLiquidated(trader, pos.collateral);
         pos.collateral -= fee;
         // token.transferFrom(msg.sender, address(this), borrowingFee);
         token.transfer(msg.sender, fee);
@@ -255,19 +273,17 @@ contract FourbPerp {
 
     /**
      * returns Profit / loss figures for long & short
-     * pnl = current price - entryprice
+     * pnl = current price - entryprice - for long | short is the other way round
      */
     function calcPnL() internal returns (int256) {}
 
     /**
      * check postion's health
      */
-    function isPositionLiquidatable() public returns(bool){}
+    function isPositionLiquidatable() public returns (bool) {}
 
     /**
      * Total profit/loss made a whole for the protocol
      */
     function totalPnL() internal returns (int256) {}
-
-    function closePosition() external{}
 }
