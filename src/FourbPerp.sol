@@ -4,7 +4,13 @@ pragma solidity 0.8.20;
 import {IERC20} from "lib/forge-std/src/interfaces/IERC20.sol";
 import {pricefeed} from "./PriceFeed.sol";
 
+/**
+ * @title FOURB PERPETUAL
+ * @author 4b
+ * @notice A custom perpetual contract
+ */
 contract FourbPerp {
+    /////////////////// events ///////////////////////
     event Update(uint256 timeSinceUpdate, bool isUpdate);
     event PositionLiquidated(address liquidated, uint256 collateral);
     event PositionIncrease(uint256 amountToIncrease, bool isCollateral);
@@ -13,9 +19,12 @@ contract FourbPerp {
     event LiquidityAdded(address liquidityProvider, uint256 amount);
     event LiquidityRemoved(address liquidityProvider, uint256 amount);
 
+    // price feed
     pricefeed private PriceFeed;
+    // token
     IERC20 private token;
 
+    /////////////////////// mappings ////////////////////////////
     mapping(address => uint256) public collateral;
     mapping(address => uint256) public liquidity;
     mapping(address => Position) public positionDetails;
