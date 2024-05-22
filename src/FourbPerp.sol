@@ -271,8 +271,15 @@ contract FourbPerp {
      * mostly 50% of your deposited amount thats what is recommended
      * require lev < max lev
      * lev = tokenamt * avgtokenprice/collateral
+     * changed to public for testing purposes
      */
-    function maxUtilization() internal returns (bool) {}
+    function maxUtilization() public view returns (bool) {
+        uint256 _collateral = positionDetails[msg.sender].collateral;
+        uint256 _size = positionDetails[msg.sender].size;
+        uint256 _maxUtilization = ((5_000 * _collateral) / 10_000);
+        uint256 levAmount = _collateral + _maxUtilization;
+        return levAmount > _size ? false : true;
+    }
 
     /**
      * Borrowing fees

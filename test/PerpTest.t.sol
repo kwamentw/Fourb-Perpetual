@@ -219,6 +219,18 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Test to ensure 50% leverage works as planned
+     */
+    function testUtilisationMaxxedOut() public {
+        token.mint(address(5), 50e18);
+        vm.prank(address(5));
+        perp.openPosition(50e18, 1220e18);
+
+        vm.prank(address(5));
+        assertTrue(perp.maxUtilization());
+    }
+
     //////////////////////////////////////////////////////////////////////////////
     ///////////////////          F U Z Z -- T E S TS            //////////////////
     //////////////////////////////////////////////////////////////////////////////
