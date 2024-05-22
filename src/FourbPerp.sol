@@ -31,7 +31,8 @@ contract FourbPerp {
 
     uint256 immutable MAX_UTILIZATION = 80;
     uint256 public s_totalLiquidity;
-    uint256 public s_totalOpenInterest;
+    uint256 public s_totalOpenInterestLong;
+    uint256 public s_totalOpenInterestShort;
     uint256 private sizeDelta;
 
     struct Position {
@@ -121,7 +122,11 @@ contract FourbPerp {
         // i dont update this in other functions
         collateral[msg.sender] = _collateral;
         token.transferFrom(msg.sender, address(this), _collateral);
-        s_totalOpenInterest = _size;
+        if (_position.isLong == true) {
+            s_totalOpenInterestLong += _size;
+        } else {
+            s_totalOpenInterestShort += _size;
+        }
     }
 
     /**
@@ -154,7 +159,11 @@ contract FourbPerp {
         // token.transferFrom(msg.sender, address(this), borrowingFee);
         // borrowingFee -= borrowingFee;
         // token.transfer(address(this), positionFee);
-        s_totalOpenInterest += amountToIncrease;
+        if (pos.isLong == true) {
+            s_totalOpenInterestLong += amountToIncrease;
+        } else {
+            s_totalOpenInterestShort += amountToIncrease;
+        }
     }
 
     /**
@@ -184,7 +193,11 @@ contract FourbPerp {
         emit PositionDecrease(amountToDecrease, false);
         positionDetails[msg.sender] = pos;
         token.transfer(address(this), positionFee);
-        s_totalOpenInterest -= amountToDecrease;
+        if (pos.isLong == true) {
+            s_totalOpenInterestLong -= amountToDecrease;
+        } else {
+            s_totalOpenInterestShort -= amountToDecrease;
+        }
     }
 
     /**
@@ -291,7 +304,17 @@ contract FourbPerp {
      * returns Profit / loss figures for long & short
      * pnl = current price - entryprice - for long | short is the other way round
      */
-    function calcPnL() internal returns (int256) {}
+    function calcPnL(Position memory pos) internal pure returns (int256 pNl) {
+        uint256 currentPrice = getPrice();
+        uint256 entryPrice = pos.entryPrice;
+        if (pos.isLong) {
+            pNl = int256((pos.size * currentPrice) - (pos.size * entryPrice));
+        } else {
+            pNl = int256((pos.size * entryPrice) - (pos.size * currentPrice));
+        }
+
+        return pNl;
+    }
 
     /**
      * check postion's health
