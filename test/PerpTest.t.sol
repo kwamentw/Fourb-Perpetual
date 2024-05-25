@@ -10,6 +10,14 @@ contract PerpTest is Test {
     FourbPerp perp;
     ERC20 token;
 
+    struct Position {
+        uint256 entryPrice;
+        uint256 collateral;
+        bool isLong;
+        uint256 size;
+        uint256 timestamp;
+    }
+
     function setUp() public {
         token = new ERC20("CustomToken", "CSTM-TKN", 18, 1000e18);
         perp = new FourbPerp(address(token));
@@ -229,6 +237,32 @@ contract PerpTest is Test {
 
         vm.prank(address(5));
         assertTrue(perp.maxUtilization());
+    }
+
+    /**
+     * Test to see whether LongPosition makes profit
+     */
+    function testforProfit() public {
+        token.mint(address(3), 20e18);
+        vm.startPrank(address(3));
+        perp.openPosition(20e18, 40e18);
+
+        int256 result = perp.getPnL();
+        assertGt(result, 0);
+        vm.stopPrank();
+    }
+
+    /**
+     * Test to see whether LongPostion can lose profit
+     */
+    function testforLoss() public {
+        token.mint(address(3), 25e18);
+        vm.startPrank(address(3));
+        perp.openPosition(25e18, 50e18);
+
+        int256 pnl = perp.getPnL();
+        assertLt(pnl, 0);
+        vm.stopPrank();
     }
 
     //////////////////////////////////////////////////////////////////////////////

@@ -93,7 +93,7 @@ contract FourbPerp {
      * Getting price from chainlink data feed
      */
     function getPrice() public pure returns (uint256) {
-        uint256 currentPrice = 1; /*PriceFeed.getPrice();*/
+        uint256 currentPrice = 7; /*PriceFeed.getPrice();*/
         return currentPrice;
     }
 
@@ -105,7 +105,7 @@ contract FourbPerp {
         require(_size > 0, "Postion Size must be > 0");
         require(_size >= (MAX_UTILIZATION * s_totalLiquidity) / 100);
         // its supposed to getPrice() from chainlink
-        uint256 currentPrice = 1;
+        uint256 currentPrice = 15;
 
         Position memory _position = Position({
             entryPrice: currentPrice,
@@ -301,19 +301,29 @@ contract FourbPerp {
     function calcBorrowingFees() internal returns (uint256) {}
 
     /**
+     * calculates profit and loss for a trader position
      * returns Profit / loss figures for long & short
      * pnl = current price - entryprice - for long | short is the other way round
      */
-    function calcPnL(Position memory pos) internal pure returns (int256 pNl) {
+    function calcPnL() internal view returns (int256 pNl) {
+        Position memory pos = getPosition(msg.sender);
         uint256 currentPrice = getPrice();
         uint256 entryPrice = pos.entryPrice;
         if (pos.isLong) {
-            pNl = int256((pos.size * currentPrice) - (pos.size * entryPrice));
+            pNl = (int256(pos.size * currentPrice) -
+                int256(pos.size * entryPrice));
         } else {
             pNl = int256((pos.size * entryPrice) - (pos.size * currentPrice));
         }
 
         return pNl;
+    }
+
+    /**
+     * Gets profit and loss of msg.sender positon
+     */
+    function getPnL() external view returns (int256 pNl) {
+        pNl = calcPnL();
     }
 
     /**
