@@ -97,7 +97,7 @@ contract PerpTest is Test {
     function test_OpenPositon() public {
         vm.startPrank(address(39));
         token.mint(address(39), 11e18);
-        perp.openPosition(10e18, 100e18);
+        perp.openPosition(10e18, 100e18, true);
 
         assertEq(perp.collateral(address(39)), 10e18);
 
@@ -110,7 +110,7 @@ contract PerpTest is Test {
     function test_increaseSize() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
-        perp.openPosition(10e18, 100e18);
+        perp.openPosition(10e18, 100e18, true);
 
         assertEq(perp.collateral(address(39)), 10e18);
 
@@ -127,7 +127,7 @@ contract PerpTest is Test {
     function test_decreaseSize() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
-        perp.openPosition(10e18, 100e18);
+        perp.openPosition(10e18, 100e18, true);
 
         assertEq(perp.collateral(address(39)), 10e18);
 
@@ -152,7 +152,7 @@ contract PerpTest is Test {
     function test_increaseCollateral() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
-        perp.openPosition(10e18, 100e18);
+        perp.openPosition(10e18, 100e18, true);
 
         assertEq(perp.collateral(address(39)), 10e18);
 
@@ -186,7 +186,7 @@ contract PerpTest is Test {
     function test_decreaseCollateral() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
-        perp.openPosition(15e18, 100e18);
+        perp.openPosition(15e18, 100e18, true);
 
         assertEq(perp.collateral(address(39)), 15e18);
 
@@ -214,7 +214,7 @@ contract PerpTest is Test {
     function test_liquidate() public {
         vm.startPrank(address(39));
         token.mint(address(39), 25e18);
-        perp.openPosition(15e18, 100e18);
+        perp.openPosition(15e18, 100e18, true);
 
         assertEq(perp.collateral(address(39)), 15e18);
 
@@ -233,7 +233,7 @@ contract PerpTest is Test {
     function testUtilisationMaxxedOut() public {
         token.mint(address(5), 50e18);
         vm.prank(address(5));
-        perp.openPosition(50e18, 1220e18);
+        perp.openPosition(50e18, 1220e18, true);
 
         vm.prank(address(5));
         assertTrue(perp.maxUtilization());
@@ -245,7 +245,7 @@ contract PerpTest is Test {
     function testforProfit() public {
         token.mint(address(3), 20e18);
         vm.startPrank(address(3));
-        perp.openPosition(20e18, 40e18);
+        perp.openPosition(20e18, 40e18, true);
 
         int256 result = perp.getPnL();
         assertGt(result, 0);
@@ -258,11 +258,31 @@ contract PerpTest is Test {
     function testforLoss() public {
         token.mint(address(3), 25e18);
         vm.startPrank(address(3));
-        perp.openPosition(25e18, 50e18);
+        perp.openPosition(25e18, 50e18, true);
 
         int256 pnl = perp.getPnL();
         assertLt(pnl, 0);
         vm.stopPrank();
+    }
+
+    function testTotalPNL() public {
+        token.mint(address(5), 15e18);
+        token.mint(address(6), 25e18);
+        token.mint(address(7), 35e18);
+        token.mint(address(8), 36e18);
+
+        vm.prank(address(5));
+        perp.openPosition(15e18, 30e18, true);
+        vm.prank(address(6));
+        perp.openPosition(25e18, 50e18, false);
+        vm.prank(address(7));
+        perp.openPosition(35e18, 70e18, false);
+        vm.prank(address(8));
+        perp.openPosition(36e18, 72e18, true);
+
+        uint256 totalPNL = perp.getTotalPnL(true);
+
+        assertGt(totalPNL, 0, "Check your params");
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -319,7 +339,7 @@ contract PerpTest is Test {
         vm.startPrank(address(25));
         token.mint(address(25), collateral);
 
-        perp.openPosition(collateral, size);
+        perp.openPosition(collateral, size, true);
 
         assertEq(perp.getPositionCollateral(address(25)), collateral);
         assertEq(perp.getPostionSize(address(25)), size);
@@ -335,7 +355,7 @@ contract PerpTest is Test {
 
         vm.startPrank(address(95));
         token.mint(address(95), 50e18);
-        perp.openPosition(50e18, 85e18);
+        perp.openPosition(50e18, 85e18, true);
 
         perp.increaseSize(sizeIncrease);
         uint256 currSize = 85e18 + sizeIncrease;
@@ -353,7 +373,7 @@ contract PerpTest is Test {
         sizeDecrease = bound(sizeDecrease, 1, 80_000e18);
         vm.startPrank(address(115));
         token.mint(address(115), 500e18);
-        perp.openPosition(500e18, 90000e18);
+        perp.openPosition(500e18, 90000e18, true);
         vm.stopPrank();
 
         vm.prank(address(115));
@@ -371,7 +391,7 @@ contract PerpTest is Test {
         amountToIncrease = bound(amountToIncrease, 1, type(uint128).max);
         vm.startPrank(address(47));
         token.mint(address(47), 30e18);
-        perp.openPosition(30e18, 100e18);
+        perp.openPosition(30e18, 100e18, true);
 
         assertEq(perp.getPostionSize(address(47)), 100e18);
         assertEq(perp.getPositionCollateral(address(47)), 30e18);
@@ -393,7 +413,7 @@ contract PerpTest is Test {
         amountToDecrease = bound(amountToDecrease, 1, 100e18);
         vm.startPrank(address(1));
         token.mint(address(1), 100e18);
-        perp.openPosition(100e18, 1000e18);
+        perp.openPosition(100e18, 1000e18, true);
 
         assertEq(perp.getPositionCollateral(address(1)), 100e18);
 
@@ -413,22 +433,22 @@ contract PerpTest is Test {
         // opening 4 positions with 4 different addresses so i can fuzz liquidate
         vm.startPrank(address(1));
         token.mint(address(1), 200e18);
-        perp.openPosition(200e18, 2000e18);
+        perp.openPosition(200e18, 2000e18, true);
         vm.stopPrank();
 
         vm.startPrank(address(2));
         token.mint(address(2), 300e18);
-        perp.openPosition(300e18, 3000e18);
+        perp.openPosition(300e18, 3000e18, true);
         vm.stopPrank();
 
         vm.startPrank(address(3));
         token.mint(address(3), 400e18);
-        perp.openPosition(400e18, 4000e18);
+        perp.openPosition(400e18, 4000e18, true);
         vm.stopPrank();
 
         vm.startPrank(address(4));
         token.mint(address(4), 500e18);
-        perp.openPosition(500e18, 5000e18);
+        perp.openPosition(500e18, 5000e18, true);
         vm.stopPrank();
 
         // trying to bound fuzzer to the open positions
