@@ -236,13 +236,13 @@ contract PerpTest is Test {
         perp.openPosition(50e18, 1220e18, true);
 
         vm.prank(address(5));
-        assertTrue(perp.maxUtilization());
+        assertTrue(perp.maxLeverage());
     }
 
     /**
      * Test to see whether LongPosition makes profit
      */
-    function testforProfit() public {
+    function testforProfitLong() public {
         token.mint(address(3), 20e18);
         vm.startPrank(address(3));
         perp.openPosition(20e18, 40e18, true);
@@ -252,10 +252,30 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    function testforProfitShort() public {
+        token.mint(address(3), 30e18);
+        vm.startPrank(address(3));
+        perp.openPosition(30e18, 60e18, false);
+
+        int256 result = perp.getPnL();
+        assertGt(result, 0);
+        vm.stopPrank();
+    }
+
+    function testforLossShort() public {
+        token.mint(address(3), 22e18);
+        vm.startPrank(address(3));
+        perp.openPosition(22e18, 44e18, false);
+
+        int256 result = perp.getPnL();
+        assertLt(result, 0);
+        vm.stopPrank();
+    }
+
     /**
      * Test to see whether LongPostion can lose profit
      */
-    function testforLoss() public {
+    function testforLossLong() public {
         token.mint(address(3), 25e18);
         vm.startPrank(address(3));
         perp.openPosition(25e18, 50e18, true);
@@ -280,7 +300,7 @@ contract PerpTest is Test {
         vm.prank(address(8));
         perp.openPosition(36e18, 72e18, true);
 
-        uint256 totalPNL = perp.getTotalPnL(true);
+        int256 totalPNL = perp.getTotalPnL(true);
 
         assertGt(totalPNL, 0, "Check your params");
     }

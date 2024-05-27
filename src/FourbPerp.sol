@@ -29,12 +29,12 @@ contract FourbPerp {
     mapping(address => uint256) public liquidity;
     mapping(address => Position) public positionDetails;
 
-    uint256 immutable MAX_UTILIZATION = 80;
+    uint256 immutable MAX_LEVERAGE = 80;
     uint256 public s_totalLiquidity;
-    uint256 public s_totalOpenInterestLong;
-    uint256 public s_totalOpenInterestLongTokens;
-    uint256 public s_totalOpenInterestShort;
-    uint256 public s_totalOpenInterestShortTokens;
+    int256 public s_totalOpenInterestLong;
+    int256 public s_totalOpenInterestLongTokens;
+    int256 public s_totalOpenInterestShort;
+    int256 public s_totalOpenInterestShortTokens;
     uint256 private sizeDelta;
 
     struct Position {
@@ -65,7 +65,7 @@ contract FourbPerp {
     }
 
     /**
-     * LPs can use this to remove liquidity fromt he pool
+     * LPs can use this to remove liquidity from the pool
      */
     function removeLiquidity(uint256 amount) public {
         require(amount > 0);
@@ -77,7 +77,11 @@ contract FourbPerp {
         //     amount < s_totalOpenInterest,
         //     "Can't remove liquidity reserves"
         // );
-        require(amount < s_totalLiquidity * MAX_UTILIZATION);
+        require(
+            amount <
+                uint256(s_totalOpenInterestShort) +
+                    uint256(s_totalOpenInterestLong)
+        );
 
         emit LiquidityRemoved(msg.sender, amount);
 
@@ -95,7 +99,7 @@ contract FourbPerp {
      * Getting price from chainlink data feed
      */
     function getPrice() public pure returns (uint256) {
-        uint256 currentPrice = 17; /*PriceFeed.getPrice();*/
+        uint256 currentPrice = 13; /*PriceFeed.getPrice();*/
         return currentPrice;
     }
 
@@ -109,9 +113,9 @@ contract FourbPerp {
     ) external {
         require(_collateral > 10, "Collateral can't be less than 10");
         require(_size > 0, "Postion Size must be > 0");
-        require(_size >= (MAX_UTILIZATION * s_totalLiquidity) / 100);
+        require(_size >= (MAX_LEVERAGE * s_totalLiquidity) / 100);
         // its supposed to getPrice() from chainlink
-        uint256 currentPrice = 12;
+        uint256 currentPrice = 7;
 
         Position memory _position = Position({
             entryPrice: currentPrice,
@@ -129,11 +133,11 @@ contract FourbPerp {
         collateral[msg.sender] = _collateral;
         token.transferFrom(msg.sender, address(this), _collateral);
         if (_position.isLong == true) {
-            s_totalOpenInterestLongTokens += (_size * currentPrice);
-            s_totalOpenInterestLong += _size;
+            s_totalOpenInterestLongTokens += int256(_size * currentPrice);
+            s_totalOpenInterestLong += int256(_size);
         } else {
-            s_totalOpenInterestShortTokens += (_size * currentPrice);
-            s_totalOpenInterestShort += _size;
+            s_totalOpenInterestShortTokens += int256(_size * currentPrice);
+            s_totalOpenInterestShort += int256(_size);
         }
     }
 
@@ -169,11 +173,15 @@ contract FourbPerp {
         // borrowingFee -= borrowingFee;
         // token.transfer(address(this), positionFee);
         if (pos.isLong == true) {
-            s_totalOpenInterestLong += amountToIncrease;
-            s_totalOpenInterestLongTokens += (amountToIncrease * currentPrice);
+            s_totalOpenInterestLong += int256(amountToIncrease);
+            s_totalOpenInterestLongTokens += int256(
+                amountToIncrease * currentPrice
+            );
         } else {
-            s_totalOpenInterestShortTokens += (amountToIncrease * currentPrice);
-            s_totalOpenInterestShort += amountToIncrease;
+            s_totalOpenInterestShortTokens += int256(
+                amountToIncrease * currentPrice
+            );
+            s_totalOpenInterestShort += int256(amountToIncrease);
         }
     }
 
@@ -205,11 +213,15 @@ contract FourbPerp {
         positionDetails[msg.sender] = pos;
         token.transfer(address(this), positionFee);
         if (pos.isLong == true) {
-            s_totalOpenInterestLongTokens -= (amountToDecrease * currentPrice);
-            s_totalOpenInterestLong -= amountToDecrease;
+            s_totalOpenInterestLongTokens -= int256(
+                amountToDecrease * currentPrice
+            );
+            s_totalOpenInterestLong -= int256(amountToDecrease);
         } else {
-            s_totalOpenInterestShortTokens -= (amountToDecrease * currentPrice);
-            s_totalOpenInterestShort -= amountToDecrease;
+            s_totalOpenInterestShortTokens -= int256(
+                amountToDecrease * currentPrice
+            );
+            s_totalOpenInterestShort -= int256(amountToDecrease);
         }
     }
 
@@ -299,11 +311,11 @@ contract FourbPerp {
      * lev = tokenamt * avgtokenprice/collateral
      * changed to public for testing purposes
      */
-    function maxUtilization() public view returns (bool) {
+    function maxLeverage() public view returns (bool) {
         uint256 _collateral = positionDetails[msg.sender].collateral;
         uint256 _size = positionDetails[msg.sender].size;
-        uint256 _maxUtilization = ((5_000 * _collateral) / 10_000);
-        uint256 levAmount = _collateral + _maxUtilization;
+        uint256 _maxLeverage = ((5_000 * _collateral) / 10_000);
+        uint256 levAmount = _collateral + _maxLeverage;
         return levAmount > _size ? false : true;
     }
 
@@ -326,7 +338,8 @@ contract FourbPerp {
             pNl = (int256(pos.size * currentPrice) -
                 int256(pos.size * entryPrice));
         } else {
-            pNl = int256((pos.size * entryPrice) - (pos.size * currentPrice));
+            pNl = (int256(pos.size * entryPrice) -
+                int256(pos.size * currentPrice));
         }
 
         return pNl;
@@ -348,8 +361,8 @@ contract FourbPerp {
      * Total profit/loss made a whole for the protocol
      * add negative pnls
      */
-    function totalPnL(bool isLong) internal view returns (uint256 totalPNL) {
-        uint256 currentPrice = getPrice();
+    function totalPnL(bool isLong) internal view returns (int256 totalPNL) {
+        int256 currentPrice = int256(getPrice());
         if (isLong) {
             totalPNL =
                 (s_totalOpenInterestLong * currentPrice) -
@@ -361,7 +374,7 @@ contract FourbPerp {
         }
     }
 
-    function getTotalPnL(bool isLong) external view returns (uint256 totalPNL) {
+    function getTotalPnL(bool isLong) external view returns (int256 totalPNL) {
         totalPNL = totalPnL(isLong);
     }
 }
