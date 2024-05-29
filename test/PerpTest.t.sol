@@ -305,6 +305,26 @@ contract PerpTest is Test {
         assertGt(totalPNL, 0, "Check your params");
     }
 
+    function testIsPositionLiquidatable() public {
+        token.mint(address(3), 50e18);
+        vm.startPrank(address(3));
+        perp.openPosition(50e18, 75e18, true);
+
+        assertTrue(perp.isPositionLiquidatable());
+
+        vm.stopPrank();
+    }
+
+    function testIsNotLiquidatable() public {
+        token.mint(address(3), 25e18);
+        vm.startPrank(address(3));
+        perp.openPosition(25e18, 70e18, true);
+
+        assertFalse(perp.isPositionLiquidatable());
+
+        vm.stopPrank();
+    }
+
     //////////////////////////////////////////////////////////////////////////////
     ///////////////////          F U Z Z -- T E S TS            //////////////////
     //////////////////////////////////////////////////////////////////////////////

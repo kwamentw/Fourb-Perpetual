@@ -29,7 +29,7 @@ contract FourbPerp {
     mapping(address => uint256) public liquidity;
     mapping(address => Position) public positionDetails;
 
-    uint256 immutable MAX_LEVERAGE = 80;
+    uint256 immutable MAX_LEVERAGE = 150;
     uint256 public s_totalLiquidity;
     int256 public s_totalOpenInterestLong;
     int256 public s_totalOpenInterestLongTokens;
@@ -355,7 +355,15 @@ contract FourbPerp {
     /**
      * check postion's health
      */
-    function isPositionLiquidatable() public returns (bool) {}
+    function isPositionLiquidatable() public view returns (bool) {
+        Position memory pos = getPosition(msg.sender);
+        uint256 col = pos.collateral;
+        uint256 size = pos.size;
+
+        uint256 amountFactor = (size * 100) / col;
+
+        return amountFactor <= MAX_LEVERAGE ? true : false;
+    }
 
     /**
      * Total profit/loss made a whole for the protocol
