@@ -354,6 +354,8 @@ contract FourbPerp {
 
     /**
      * check postion's health
+     * leverage is 50% of deposited collateral
+     * max leverage is 150%
      */
     function isPositionLiquidatable() public view returns (bool) {
         Position memory pos = getPosition(msg.sender);
