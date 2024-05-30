@@ -35,7 +35,8 @@ contract FourbPerp {
     int256 public s_totalOpenInterestLongTokens;
     int256 public s_totalOpenInterestShort;
     int256 public s_totalOpenInterestShortTokens;
-    uint256 private sizeDelta;
+    uint256 private s_borrowingPerSharePerSecond;
+    uint256 sizeDelta;
 
     struct Position {
         uint256 entryPrice;
@@ -45,8 +46,9 @@ contract FourbPerp {
         uint256 timestamp;
     }
 
-    constructor(address _token) {
+    constructor(address _token, uint256 _borrowingPerSharePerSecond) {
         token = IERC20(_token);
+        s_borrowingPerSharePerSecond = _borrowingPerSharePerSecond;
     }
 
     /**
@@ -163,6 +165,8 @@ contract FourbPerp {
             ? block.timestamp - pos.timestamp
             : 0;
 
+        pos.timestamp = block.timestamp;
+
         emit Update(secondsSincePositionWasUpdated, true);
         emit PositionIncrease(amountToIncrease, false);
         // pos.collateral -= positionFee;
@@ -198,16 +202,17 @@ contract FourbPerp {
         // sizeDelta -= amountToDecrease;
         uint256 currentPrice = getPrice();
         // uint256 pnl;
-        // uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
-        //     ? block.timestamp - pos.timestamp
-        //     : 0;
+        uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
+            ? block.timestamp - pos.timestamp
+            : 0;
 
         // if (pos.isLong) {
         //     pnl = (currentPrice - pos.entryPrice) * amountToDecrease;
         // } else {
         //     pnl = (pos.entryPrice - currentPrice) * amountToDecrease;
         // }
-        //    emit Update(secondsSincePositionWasUpdated, true);
+        pos.timestamp = block.timestamp;
+        emit Update(secondsSincePositionWasUpdated, true);
         // pos.collateral += pnl;
         emit PositionDecrease(amountToDecrease, false);
         positionDetails[msg.sender] = pos;
@@ -237,6 +242,7 @@ contract FourbPerp {
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
+        pos.timestamp = block.timestamp;
         emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral += amountToIncrease;
         token.transferFrom(msg.sender, address(this), amountToIncrease);
@@ -254,6 +260,7 @@ contract FourbPerp {
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
+        pos.timestamp = block.timestamp;
         emit Update(secondsSincePositionWasUpdated, true);
         pos.collateral -= amountToDecrease;
         token.transferFrom(address(this), msg.sender, amountToDecrease);
@@ -262,15 +269,13 @@ contract FourbPerp {
 
     /**
      *  LPs or external actors can liquidate you when your position become liquidatable
+     * some protocols use the `decrease` functions to liquidate- i gotta check that out
      */
     function liquidate(address trader) external {
         require(msg.sender != address(0));
         require(msg.sender != trader);
         Position memory pos = getPosition(trader);
         require(pos.collateral > 0, "inavlid position cannot liquidate");
-        uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
-            ? block.timestamp - pos.timestamp
-            : 0;
 
         // uint256 borrowingFee = ((pos.size - sizeDelta) * 10) / 1000;
         // uint256 currentPrice = getPrice();
@@ -279,7 +284,7 @@ contract FourbPerp {
         //     : (pos.entryPrice - currentPrice) * pos.size;
         // pos.collateral += pnl;
         uint256 fee = (pos.collateral * 3) / 100;
-        emit Update(secondsSincePositionWasUpdated, true);
+
         emit PositionLiquidated(trader, pos.collateral);
         pos.collateral -= fee;
         // token.transferFrom(msg.sender, address(this), borrowingFee);
@@ -307,6 +312,7 @@ contract FourbPerp {
     /**
      * Leverage
      * mostly 50% of your deposited amount thats what is recommended
+     * 50& = 5_000/10_000
      * require lev < max lev
      * lev = tokenamt * avgtokenprice/collateral
      * changed to public for testing purposes
@@ -322,8 +328,24 @@ contract FourbPerp {
     /**
      * Borrowing fees
      * this is time dependent
+     * precision is 10_000
+     * have to write a setter function for _borrowingPerSharePerSecond
      */
-    function calcBorrowingFees() internal returns (uint256) {}
+    function calcBorrowingFees() internal view returns (uint256) {
+        Position memory pos = getPosition(msg.sender);
+        uint256 pendingBorrowingFees = (pos.size *
+            (block.timestamp - pos.timestamp) *
+            s_borrowingPerSharePerSecond) / 10000;
+
+        return pendingBorrowingFees;
+    }
+
+    /**
+     * To get results of calcBorrowingPerShareFees
+     */
+    function getBorrowingFees() external view returns (uint256) {
+        return calcBorrowingFees();
+    }
 
     /**
      * calculates profit and loss for a trader position
