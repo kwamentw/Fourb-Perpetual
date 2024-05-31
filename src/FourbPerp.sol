@@ -35,7 +35,7 @@ contract FourbPerp {
     int256 public s_totalOpenInterestLongTokens;
     int256 public s_totalOpenInterestShort;
     int256 public s_totalOpenInterestShortTokens;
-    uint256 private s_borrowingPerSharePerSecond;
+    uint256 public s_borrowingPerSharePerSecond;
     uint256 sizeDelta;
 
     struct Position {
@@ -48,6 +48,15 @@ contract FourbPerp {
 
     constructor(address _token, uint256 _borrowingPerSharePerSecond) {
         token = IERC20(_token);
+        s_borrowingPerSharePerSecond = _borrowingPerSharePerSecond;
+    }
+
+    /**
+     * For setting BorrowingPerSharePerSecond
+     */
+    function setBorrowingPerSharePerSecond(
+        uint256 _borrowingPerSharePerSecond
+    ) external {
         s_borrowingPerSharePerSecond = _borrowingPerSharePerSecond;
     }
 
@@ -332,7 +341,7 @@ contract FourbPerp {
      * have to write a setter function for _borrowingPerSharePerSecond
      */
     function calcBorrowingFees() internal view returns (uint256) {
-        Position memory pos = getPosition(msg.sender);
+        Position memory pos = positionDetails[msg.sender];
         uint256 pendingBorrowingFees = (pos.size *
             (block.timestamp - pos.timestamp) *
             s_borrowingPerSharePerSecond) / 10000;

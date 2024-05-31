@@ -20,7 +20,7 @@ contract PerpTest is Test {
 
     function setUp() public {
         token = new ERC20("CustomToken", "CSTM-TKN", 18, 1000e18);
-        perp = new FourbPerp(address(token));
+        perp = new FourbPerp(address(token), 1);
     }
 
     /**
@@ -323,6 +323,23 @@ contract PerpTest is Test {
         assertFalse(perp.isPositionLiquidatable());
 
         vm.stopPrank();
+    }
+
+    function testBorrowingFees() public {
+        token.mint(address(9), 233e18);
+        vm.startPrank(address(9));
+        vm.warp(1641070800);
+        perp.openPosition(233e18, 400e18, true);
+
+        // you can set the shares if you tryna test out something different
+        perp.setBorrowingPerSharePerSecond(0);
+        vm.warp(1841070800);
+        uint256 fees = perp.getBorrowingFees();
+
+        vm.stopPrank();
+
+        // it is zero because the borrowingFeesPerShare value is set to 0 when deploying.
+        assertGe(fees, 0);
     }
 
     //////////////////////////////////////////////////////////////////////////////
