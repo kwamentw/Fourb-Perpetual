@@ -114,7 +114,7 @@ contract PerpTest is Test {
 
         assertEq(perp.collateral(address(39)), 10e18);
 
-        perp.increaseSize(20e18);
+        perp.increaseSize(20e18, msg.sender);
 
         vm.stopPrank();
 
@@ -131,7 +131,7 @@ contract PerpTest is Test {
 
         assertEq(perp.collateral(address(39)), 10e18);
 
-        perp.increaseSize(20e18);
+        perp.increaseSize(20e18, msg.sender);
         assertEq(perp.getPostionSize(address(39)), 120e18);
         console2.log(
             "remaining collateral: ",
@@ -156,7 +156,7 @@ contract PerpTest is Test {
 
         assertEq(perp.collateral(address(39)), 10e18);
 
-        perp.increaseSize(20e18);
+        perp.increaseSize(20e18, msg.sender);
         assertEq(perp.getPostionSize(address(39)), 120e18);
 
         perp.decreaseSize(40e18);
@@ -247,7 +247,7 @@ contract PerpTest is Test {
         vm.startPrank(address(3));
         perp.openPosition(20e18, 40e18, true);
 
-        int256 result = perp.getPnL();
+        int256 result = perp.getPnL(address(3));
         assertGt(result, 0);
         vm.stopPrank();
     }
@@ -257,7 +257,7 @@ contract PerpTest is Test {
         vm.startPrank(address(3));
         perp.openPosition(30e18, 60e18, false);
 
-        int256 result = perp.getPnL();
+        int256 result = perp.getPnL(address(3));
         assertGt(result, 0);
         vm.stopPrank();
     }
@@ -267,7 +267,7 @@ contract PerpTest is Test {
         vm.startPrank(address(3));
         perp.openPosition(22e18, 44e18, false);
 
-        int256 result = perp.getPnL();
+        int256 result = perp.getPnL(address(3));
         assertLt(result, 0);
         vm.stopPrank();
     }
@@ -280,7 +280,7 @@ contract PerpTest is Test {
         vm.startPrank(address(3));
         perp.openPosition(25e18, 50e18, true);
 
-        int256 pnl = perp.getPnL();
+        int256 pnl = perp.getPnL(address(3));
         assertLt(pnl, 0);
         vm.stopPrank();
     }
@@ -334,7 +334,7 @@ contract PerpTest is Test {
         // you can set the shares if you tryna test out something different
         perp.setBorrowingPerSharePerSecond(0);
         vm.warp(1841070800);
-        uint256 fees = perp.getBorrowingFees();
+        uint256 fees = perp.getBorrowingFees(msg.sender);
 
         vm.stopPrank();
 
@@ -414,7 +414,7 @@ contract PerpTest is Test {
         token.mint(address(95), 50e18);
         perp.openPosition(50e18, 85e18, true);
 
-        perp.increaseSize(sizeIncrease);
+        perp.increaseSize(sizeIncrease, msg.sender);
         uint256 currSize = 85e18 + sizeIncrease;
 
         vm.stopPrank();

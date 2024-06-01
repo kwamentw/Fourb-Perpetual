@@ -36,7 +36,6 @@ contract FourbPerp {
     int256 public s_totalOpenInterestShort;
     int256 public s_totalOpenInterestShortTokens;
     uint256 public s_borrowingPerSharePerSecond;
-    uint256 sizeDelta;
 
     struct Position {
         uint256 entryPrice;
@@ -84,10 +83,7 @@ contract FourbPerp {
             liquidity[msg.sender] >= amount,
             "You have no liquidity in this pool"
         );
-        // require(
-        //     amount < s_totalOpenInterest,
-        //     "Can't remove liquidity reserves"
-        // );
+
         require(
             amount <
                 uint256(s_totalOpenInterestShort) +
@@ -125,7 +121,7 @@ contract FourbPerp {
         require(_collateral > 10, "Collateral can't be less than 10");
         require(_size > 0, "Postion Size must be > 0");
         require(_size >= (MAX_LEVERAGE * s_totalLiquidity) / 100);
-        // its supposed to getPrice() from chainlink
+        // its supposed to `getPrice()` from chainlink
         uint256 currentPrice = 7;
 
         Position memory _position = Position({
@@ -140,8 +136,6 @@ contract FourbPerp {
         emit PositionOpened(msg.sender, _size, true);
 
         positionDetails[msg.sender] = _position;
-        // i dont update this in other functions
-        collateral[msg.sender] = _collateral;
         token.transferFrom(msg.sender, address(this), _collateral);
         if (_position.isLong == true) {
             s_totalOpenInterestLongTokens += int256(_size * currentPrice);
@@ -162,14 +156,13 @@ contract FourbPerp {
     /**
      * To increase the size of your position
      */
-    function increaseSize(uint256 amountToIncrease) external {
+    function increaseSize(uint256 amountToIncrease, address trader) external {
         uint256 currentPrice = getPrice();
-        // try check whether size is in dollars or tokens
         // check whether position is still healthy enough to increase
         require(amountToIncrease > 0, "Should be more than 0");
         Position memory pos = getPosition(msg.sender);
-        // uint256 positionFee = (amountToIncrease * 30) / 10_000;
-        // uint256 borrowingFee = (1000 * amountToIncrease) / 10_000;
+        uint256 positionFee = (amountToIncrease * 30) / 10_000;
+        uint256 borrowingFee = calcBorrowingFees(trader);
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
@@ -178,13 +171,12 @@ contract FourbPerp {
 
         emit Update(secondsSincePositionWasUpdated, true);
         emit PositionIncrease(amountToIncrease, false);
-        // pos.collateral -= positionFee;
+        pos.collateral -= positionFee;
         pos.size += amountToIncrease;
-        sizeDelta += amountToIncrease;
         positionDetails[msg.sender] = pos;
-        // token.transferFrom(msg.sender, address(this), borrowingFee);
-        // borrowingFee -= borrowingFee;
-        // token.transfer(address(this), positionFee);
+        token.transferFrom(msg.sender, address(this), borrowingFee);
+        borrowingFee -= borrowingFee;
+        isPositionLiquidatable();
         if (pos.isLong == true) {
             s_totalOpenInterestLong += int256(amountToIncrease);
             s_totalOpenInterestLongTokens += int256(
@@ -196,6 +188,7 @@ contract FourbPerp {
             );
             s_totalOpenInterestShort += int256(amountToIncrease);
         }
+        positionDetails[msg.sender] = pos;
     }
 
     /**
@@ -206,26 +199,25 @@ contract FourbPerp {
         Position memory pos = getPosition(msg.sender);
         require(pos.size >= amountToDecrease);
         uint256 positionFee = (amountToDecrease * 3) / 1000;
-        pos.collateral -= positionFee;
-        pos.size -= amountToDecrease;
-        // sizeDelta -= amountToDecrease;
         uint256 currentPrice = getPrice();
-        // uint256 pnl;
+        int256 pnl;
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
 
-        // if (pos.isLong) {
-        //     pnl = (currentPrice - pos.entryPrice) * amountToDecrease;
-        // } else {
-        //     pnl = (pos.entryPrice - currentPrice) * amountToDecrease;
-        // }
-        pos.timestamp = block.timestamp;
         emit Update(secondsSincePositionWasUpdated, true);
-        // pos.collateral += pnl;
         emit PositionDecrease(amountToDecrease, false);
-        positionDetails[msg.sender] = pos;
-        token.transfer(address(this), positionFee);
+        pnl = calcPnL(msg.sender);
+        pos.collateral -= positionFee;
+        pos.size -= amountToDecrease;
+        isPositionLiquidatable();
+        pos.timestamp = block.timestamp;
+        if (pnl < 0) {
+            pos.collateral -= uint256(pnl);
+        } else {
+            pos.collateral += uint256(pnl);
+        }
+
         if (pos.isLong == true) {
             s_totalOpenInterestLongTokens -= int256(
                 amountToDecrease * currentPrice
@@ -237,6 +229,7 @@ contract FourbPerp {
             );
             s_totalOpenInterestShort -= int256(amountToDecrease);
         }
+        positionDetails[msg.sender] = pos;
     }
 
     /**
@@ -265,13 +258,15 @@ contract FourbPerp {
         require(amountToDecrease > 0, "You cannot decrease nothing");
         Position memory pos = getPosition(msg.sender);
         require(pos.collateral >= amountToDecrease);
-        emit PositionDecrease(amountToDecrease, true);
+
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
-        pos.timestamp = block.timestamp;
         emit Update(secondsSincePositionWasUpdated, true);
+        emit PositionDecrease(amountToDecrease, true);
+        pos.timestamp = block.timestamp;
         pos.collateral -= amountToDecrease;
+        isPositionLiquidatable();
         token.transferFrom(address(this), msg.sender, amountToDecrease);
         positionDetails[msg.sender] = pos;
     }
@@ -285,18 +280,20 @@ contract FourbPerp {
         require(msg.sender != trader);
         Position memory pos = getPosition(trader);
         require(pos.collateral > 0, "inavlid position cannot liquidate");
+        isPositionLiquidatable();
 
-        // uint256 borrowingFee = ((pos.size - sizeDelta) * 10) / 1000;
-        // uint256 currentPrice = getPrice();
-        // uint256 pnl = pos.isLong
-        //     ? (currentPrice - pos.entryPrice) * pos.size
-        //     : (pos.entryPrice - currentPrice) * pos.size;
-        // pos.collateral += pnl;
+        uint256 borrowingFee = calcBorrowingFees(trader);
+        int256 pnl = calcPnL(trader);
+        if (pnl < 0) {
+            pos.collateral -= uint256(pnl);
+        } else {
+            pos.collateral += uint256(pnl);
+        }
         uint256 fee = (pos.collateral * 3) / 100;
 
         emit PositionLiquidated(trader, pos.collateral);
         pos.collateral -= fee;
-        // token.transferFrom(msg.sender, address(this), borrowingFee);
+        token.transferFrom(msg.sender, address(this), borrowingFee);
         token.transfer(msg.sender, fee);
         token.transfer(trader, pos.collateral);
         delete positionDetails[trader];
@@ -340,8 +337,8 @@ contract FourbPerp {
      * precision is 10_000
      * have to write a setter function for _borrowingPerSharePerSecond
      */
-    function calcBorrowingFees() internal view returns (uint256) {
-        Position memory pos = positionDetails[msg.sender];
+    function calcBorrowingFees(address trader) internal view returns (uint256) {
+        Position memory pos = positionDetails[trader];
         uint256 pendingBorrowingFees = (pos.size *
             (block.timestamp - pos.timestamp) *
             s_borrowingPerSharePerSecond) / 10000;
@@ -352,8 +349,8 @@ contract FourbPerp {
     /**
      * To get results of calcBorrowingPerShareFees
      */
-    function getBorrowingFees() external view returns (uint256) {
-        return calcBorrowingFees();
+    function getBorrowingFees(address trader) external view returns (uint256) {
+        return calcBorrowingFees(trader);
     }
 
     /**
@@ -361,8 +358,8 @@ contract FourbPerp {
      * returns Profit / loss figures for long & short
      * pnl = current price - entryprice - for long | short is the other way round
      */
-    function calcPnL() internal view returns (int256 pNl) {
-        Position memory pos = getPosition(msg.sender);
+    function calcPnL(address trader) internal view returns (int256 pNl) {
+        Position memory pos = getPosition(trader);
         uint256 currentPrice = getPrice();
         uint256 entryPrice = pos.entryPrice;
         if (pos.isLong) {
@@ -379,8 +376,8 @@ contract FourbPerp {
     /**
      * Gets profit and loss of msg.sender positon
      */
-    function getPnL() external view returns (int256 pNl) {
-        pNl = calcPnL();
+    function getPnL(address trader) external view returns (int256 pNl) {
+        pNl = calcPnL(trader);
     }
 
     /**
