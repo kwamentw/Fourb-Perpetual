@@ -21,6 +21,11 @@ contract PerpTest is Test {
     function setUp() public {
         token = new ERC20("CustomToken", "CSTM-TKN", 18, 1000e18);
         perp = new FourbPerp(address(token), 1);
+
+        // Uncomment when running testRemoveLIquidity
+        // token.mint(address(39), 11e18);
+        // vm.prank(address(39));
+        // perp.openPosition(10e18, 100e18, true);
     }
 
     /**
@@ -99,7 +104,7 @@ contract PerpTest is Test {
         token.mint(address(39), 11e18);
         perp.openPosition(10e18, 100e18, true);
 
-        assertEq(perp.collateral(address(39)), 10e18);
+        assertEq(perp.getPosition(address(39)).collateral, 10e18);
 
         vm.stopPrank();
     }
@@ -112,7 +117,7 @@ contract PerpTest is Test {
         token.mint(address(39), 25e18);
         perp.openPosition(10e18, 100e18, true);
 
-        assertEq(perp.collateral(address(39)), 10e18);
+        assertEq(perp.getPosition(address(39)).collateral, 10e18);
 
         perp.increaseSize(20e18, msg.sender);
 
@@ -129,7 +134,7 @@ contract PerpTest is Test {
         token.mint(address(39), 25e18);
         perp.openPosition(10e18, 100e18, true);
 
-        assertEq(perp.collateral(address(39)), 10e18);
+        assertEq(perp.getPosition(address(39)).collateral, 10e18);
 
         perp.increaseSize(20e18, msg.sender);
         assertEq(perp.getPostionSize(address(39)), 120e18);
@@ -154,7 +159,7 @@ contract PerpTest is Test {
         token.mint(address(39), 25e18);
         perp.openPosition(10e18, 100e18, true);
 
-        assertEq(perp.collateral(address(39)), 10e18);
+        assertEq(perp.getPosition(address(39)).collateral, 10e18);
 
         perp.increaseSize(20e18, msg.sender);
         assertEq(perp.getPostionSize(address(39)), 120e18);
@@ -188,7 +193,7 @@ contract PerpTest is Test {
         token.mint(address(39), 25e18);
         perp.openPosition(15e18, 100e18, true);
 
-        assertEq(perp.collateral(address(39)), 15e18);
+        assertEq(perp.getPosition(address(39)).collateral, 15e18);
 
         uint256 currentCollateral = perp.getPositionCollateral(address(39));
 
@@ -216,7 +221,7 @@ contract PerpTest is Test {
         token.mint(address(39), 25e18);
         perp.openPosition(15e18, 100e18, true);
 
-        assertEq(perp.collateral(address(39)), 15e18);
+        assertEq(perp.getPosition(address(39)).collateral, 15e18);
 
         vm.stopPrank();
 
@@ -285,6 +290,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Testing total pnl
+     */
     function testTotalPNL() public {
         token.mint(address(5), 15e18);
         token.mint(address(6), 25e18);
@@ -315,6 +323,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Testing position is not liquidatable
+     */
     function testIsNotLiquidatable() public {
         token.mint(address(3), 25e18);
         vm.startPrank(address(3));
@@ -325,6 +336,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Testing computation of borrowing fees
+     */
     function testBorrowingFees() public {
         token.mint(address(9), 233e18);
         vm.startPrank(address(9));
@@ -332,7 +346,7 @@ contract PerpTest is Test {
         perp.openPosition(233e18, 400e18, true);
 
         // you can set the shares if you tryna test out something different
-        perp.setBorrowingPerSharePerSecond(0);
+        perp.setBorrowingPerSharePerSecond(1);
         vm.warp(1841070800);
         uint256 fees = perp.getBorrowingFees(msg.sender);
 

@@ -10,6 +10,7 @@ import {pricefeed} from "./PriceFeed.sol";
  * @notice A custom perpetual contract
  */
 contract FourbPerp {
+    error OIGtAmont();
     /////////////////// events ///////////////////////
     event Update(uint256 timeSinceUpdate, bool isUpdate);
     event PositionLiquidated(address liquidated, uint256 collateral);
@@ -19,9 +20,9 @@ contract FourbPerp {
     event LiquidityAdded(address liquidityProvider, uint256 amount);
     event LiquidityRemoved(address liquidityProvider, uint256 amount);
 
-    // price feed
+    // Price feed
     pricefeed private PriceFeed;
-    // token
+    // Token
     IERC20 private token;
 
     /////////////////////// mappings ////////////////////////////
@@ -29,6 +30,7 @@ contract FourbPerp {
     mapping(address => uint256) public liquidity;
     mapping(address => Position) public positionDetails;
 
+    /////////////////// Storage variables ///////////////////////
     uint256 immutable MAX_LEVERAGE = 150;
     uint256 public s_totalLiquidity;
     int256 public s_totalOpenInterestLong;
@@ -37,6 +39,7 @@ contract FourbPerp {
     int256 public s_totalOpenInterestShortTokens;
     uint256 public s_borrowingPerSharePerSecond;
 
+    ///////////////////////// structs /////////////////////////////
     struct Position {
         uint256 entryPrice;
         uint256 collateral;
@@ -45,10 +48,13 @@ contract FourbPerp {
         uint256 timestamp;
     }
 
+    //////////////////////////// constructor /////////////////////////////////
     constructor(address _token, uint256 _borrowingPerSharePerSecond) {
         token = IERC20(_token);
         s_borrowingPerSharePerSecond = _borrowingPerSharePerSecond;
     }
+
+    //////////////////////////// Functions /////////////////////////////////////
 
     /**
      * For setting BorrowingPerSharePerSecond
@@ -83,12 +89,11 @@ contract FourbPerp {
             liquidity[msg.sender] >= amount,
             "You have no liquidity in this pool"
         );
-
-        require(
-            amount <
-                uint256(s_totalOpenInterestShort) +
-                    uint256(s_totalOpenInterestLong)
-        );
+        uint256 totalOi = (uint256(s_totalOpenInterestShort) +
+            uint256(s_totalOpenInterestLong));
+        if (amount > totalOi) {
+            revert OIGtAmont();
+        }
 
         emit LiquidityRemoved(msg.sender, amount);
 
@@ -233,7 +238,7 @@ contract FourbPerp {
     }
 
     /**
-     * to increase the size of your collateral
+     * To increase the size of your collateral
      */
     function increaseCollateral(uint256 amountToIncrease) external {
         require(amountToIncrease > 0, "Should be greater than 0");
@@ -335,7 +340,6 @@ contract FourbPerp {
      * Borrowing fees
      * this is time dependent
      * precision is 10_000
-     * have to write a setter function for _borrowingPerSharePerSecond
      */
     function calcBorrowingFees(address trader) internal view returns (uint256) {
         Position memory pos = positionDetails[trader];
@@ -412,6 +416,9 @@ contract FourbPerp {
         }
     }
 
+    /**
+     * Gets total PNL of the type of positions (i.e whether long or short)
+     */
     function getTotalPnL(bool isLong) external view returns (int256 totalPNL) {
         totalPNL = totalPnL(isLong);
     }
