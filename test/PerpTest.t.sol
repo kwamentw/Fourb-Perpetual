@@ -3,12 +3,15 @@ pragma solidity 0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
+import {StdInvariant} from "forge-std/StdInvariant.sol";
 import {ERC20} from "./ERC20Mock.sol";
 import {FourbPerp} from "../src/FourbPerp.sol";
+import {Handler} from "./handler.sol";
 
 contract PerpTest is Test {
     FourbPerp perp;
     ERC20 token;
+    Handler handler;
 
     struct Position {
         uint256 entryPrice;
@@ -20,7 +23,14 @@ contract PerpTest is Test {
 
     function setUp() public {
         token = new ERC20("CustomToken", "CSTM-TKN", 18, 1000e18);
-        perp = new FourbPerp(address(token), 1);
+        perp = new FourbPerp(address(token), 0);
+        handler = new Handler(perp);
+
+        targetContract(address(handler));
+
+        token.mint(address(handler), 1000e18);
+        // if protocol amasses earnings there must be extra tokens to pay i.e totalSupply of tokens > totalOpenInterest
+        token.mint(address(perp), 1000e18);
 
         // Uncomment when running testRemoveLIquidity
         // token.mint(address(39), 11e18);
@@ -217,15 +227,26 @@ contract PerpTest is Test {
      * Unit test for liquidate
      */
     function test_liquidate() public {
-        vm.startPrank(address(39));
-        token.mint(address(39), 25e18);
-        perp.openPosition(15e18, 100e18, true);
+        // we have to add extra tokens incase the position gathers profit
+        token.mint(address(perp), 100e18);
 
-        assertEq(perp.getPosition(address(39)).collateral, 15e18);
+        vm.startPrank(address(39));
+        token.mint(address(39), 55e18);
+        perp.openPosition(50e18, 70e18, true);
+
+        console2.log(
+            "Balance of address(this) ",
+            token.balanceOf(address(perp))
+        );
+        assertEq(perp.getPosition(address(39)).collateral, 50e18);
 
         vm.stopPrank();
 
         vm.startPrank(address(45));
+        console2.log(
+            "Balance of address(this) ",
+            token.balanceOf(address(perp))
+        );
         perp.liquidate(address(39));
 
         assertEq(perp.getPositionCollateral(address(39)), 0);
@@ -250,7 +271,7 @@ contract PerpTest is Test {
     function testforProfitLong() public {
         token.mint(address(3), 20e18);
         vm.startPrank(address(3));
-        perp.openPosition(20e18, 40e18, true);
+        perp.openPosition(20e18, 30e18, true);
 
         int256 result = perp.getPnL(address(3));
         assertGt(result, 0);
@@ -318,7 +339,7 @@ contract PerpTest is Test {
         vm.startPrank(address(3));
         perp.openPosition(50e18, 75e18, true);
 
-        assertTrue(perp.isPositionLiquidatable());
+        assertTrue(perp.isPositionLiquidatable(address(3)));
 
         vm.stopPrank();
     }
@@ -331,7 +352,7 @@ contract PerpTest is Test {
         vm.startPrank(address(3));
         perp.openPosition(25e18, 70e18, true);
 
-        assertFalse(perp.isPositionLiquidatable());
+        assertFalse(perp.isPositionLiquidatable(address(3)));
 
         vm.stopPrank();
     }
@@ -540,5 +561,28 @@ contract PerpTest is Test {
         // checking whether shit gets liquidated
         assertEq(perp.getPositionCollateral(currentAddress), 0);
         assertGt(token.balanceOf(currentAddress), 0);
+    }
+
+    //////////////////////////////////////////////////////
+    /////////////// Stateful fuzz test ///////////////////
+    //////////////////////////////////////////////////////
+
+    function invariant_collateralnotGTtotalLiquidity() public view {
+        assertGt(perp.s_totalLiquidity(), 0);
+    }
+
+    function invariant_usercollateralLTtotalLiquidity() public view {
+        assertGt(perp.s_totalLiquidity(), perp.collateral(msg.sender));
+    }
+
+    //    testing to see if all handler functions were working
+    function test_handlerAddLi() public {
+        handler.addLiquidity(112e18);
+        // handler.openPosition(50e18, 75e18, true);
+        // handler.increaseSize();
+        // handler.decreaseSize();
+        // handler.increaseCollateral();
+        // handler.decreaseCollateral();
+        // handler.liquidate(address(33));
     }
 }

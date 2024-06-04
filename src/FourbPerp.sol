@@ -1,7 +1,8 @@
 //SPDX-License-Identifier:MIT
 pragma solidity 0.8.20;
 
-import {IERC20} from "lib/forge-std/src/interfaces/IERC20.sol";
+// import {IERC20} from "lib/forge-std/src/interfaces/IERC20.sol";
+import {ERC20} from "../test/ERC20Mock.sol";
 import {pricefeed} from "./PriceFeed.sol";
 
 /**
@@ -23,7 +24,7 @@ contract FourbPerp {
     // Price feed
     pricefeed private PriceFeed;
     // Token
-    IERC20 private token;
+    ERC20 private token;
 
     /////////////////////// mappings ////////////////////////////
     mapping(address => uint256) public collateral;
@@ -50,7 +51,7 @@ contract FourbPerp {
 
     //////////////////////////// constructor /////////////////////////////////
     constructor(address _token, uint256 _borrowingPerSharePerSecond) {
-        token = IERC20(_token);
+        token = ERC20(_token);
         s_borrowingPerSharePerSecond = _borrowingPerSharePerSecond;
     }
 
@@ -127,7 +128,7 @@ contract FourbPerp {
         require(_size > 0, "Postion Size must be > 0");
         require(_size >= (MAX_LEVERAGE * s_totalLiquidity) / 100);
         // its supposed to `getPrice()` from chainlink
-        uint256 currentPrice = 7;
+        uint256 currentPrice = 12;
 
         Position memory _position = Position({
             entryPrice: currentPrice,
@@ -181,7 +182,7 @@ contract FourbPerp {
         positionDetails[msg.sender] = pos;
         token.transferFrom(msg.sender, address(this), borrowingFee);
         borrowingFee -= borrowingFee;
-        isPositionLiquidatable();
+        isPositionLiquidatable(msg.sender);
         if (pos.isLong == true) {
             s_totalOpenInterestLong += int256(amountToIncrease);
             s_totalOpenInterestLongTokens += int256(
@@ -215,7 +216,7 @@ contract FourbPerp {
         pnl = calcPnL(msg.sender);
         pos.collateral -= positionFee;
         pos.size -= amountToDecrease;
-        isPositionLiquidatable();
+        isPositionLiquidatable(msg.sender);
         pos.timestamp = block.timestamp;
         if (pnl < 0) {
             pos.collateral -= uint256(pnl);
@@ -271,7 +272,7 @@ contract FourbPerp {
         emit PositionDecrease(amountToDecrease, true);
         pos.timestamp = block.timestamp;
         pos.collateral -= amountToDecrease;
-        isPositionLiquidatable();
+        isPositionLiquidatable(msg.sender);
         token.transferFrom(address(this), msg.sender, amountToDecrease);
         positionDetails[msg.sender] = pos;
     }
@@ -283,24 +284,24 @@ contract FourbPerp {
     function liquidate(address trader) external {
         require(msg.sender != address(0));
         require(msg.sender != trader);
+        require(isPositionLiquidatable(trader), "Not liquidatable");
         Position memory pos = getPosition(trader);
         require(pos.collateral > 0, "inavlid position cannot liquidate");
-        isPositionLiquidatable();
 
         uint256 borrowingFee = calcBorrowingFees(trader);
         int256 pnl = calcPnL(trader);
         if (pnl < 0) {
             pos.collateral -= uint256(pnl);
-        } else {
+        } else if (pnl >= 0) {
             pos.collateral += uint256(pnl);
         }
-        uint256 fee = (pos.collateral * 3) / 100;
+        uint256 fee = (pos.collateral * 3) / 10000;
 
         emit PositionLiquidated(trader, pos.collateral);
         pos.collateral -= fee;
-        token.transferFrom(msg.sender, address(this), borrowingFee);
+        token.transferFrom(trader, address(this), borrowingFee);
+        token.transferFrom(address(this), trader, pos.collateral);
         token.transfer(msg.sender, fee);
-        token.transfer(trader, pos.collateral);
         delete positionDetails[trader];
     }
 
@@ -381,7 +382,7 @@ contract FourbPerp {
      * Gets profit and loss of msg.sender positon
      */
     function getPnL(address trader) external view returns (int256 pNl) {
-        pNl = calcPnL(trader);
+        return calcPnL(trader);
     }
 
     /**
@@ -389,8 +390,8 @@ contract FourbPerp {
      * leverage is 50% of deposited collateral
      * max leverage is 150%
      */
-    function isPositionLiquidatable() public view returns (bool) {
-        Position memory pos = getPosition(msg.sender);
+    function isPositionLiquidatable(address sender) public view returns (bool) {
+        Position memory pos = getPosition(sender);
         uint256 col = pos.collateral;
         uint256 size = pos.size;
 
