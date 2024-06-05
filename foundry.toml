@@ -6,4 +6,4 @@ remappings = ["@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/"
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
 [invariant]
-fail_on_revert = false
+fail_on_revert = true
