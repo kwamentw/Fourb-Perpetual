@@ -34,10 +34,10 @@ contract FourbPerp {
     /////////////////// Storage variables ///////////////////////
     uint256 immutable MAX_LEVERAGE = 150;
     uint256 public s_totalLiquidity;
-    int256 public s_totalOpenInterestLong;
-    int256 public s_totalOpenInterestLongTokens;
-    int256 public s_totalOpenInterestShort;
-    int256 public s_totalOpenInterestShortTokens;
+    uint256 public s_totalOpenInterestLong;
+    uint256 public s_totalOpenInterestLongTokens;
+    uint256 public s_totalOpenInterestShort;
+    uint256 public s_totalOpenInterestShortTokens;
     uint256 public s_borrowingPerSharePerSecond;
 
     ///////////////////////// structs /////////////////////////////
@@ -144,11 +144,11 @@ contract FourbPerp {
         positionDetails[msg.sender] = _position;
         token.transferFrom(msg.sender, address(this), _collateral);
         if (_position.isLong == true) {
-            s_totalOpenInterestLongTokens += int256(_size * currentPrice);
-            s_totalOpenInterestLong += int256(_size);
+            s_totalOpenInterestLongTokens += (_size) * (currentPrice);
+            s_totalOpenInterestLong += (_size);
         } else {
-            s_totalOpenInterestShortTokens += int256(_size * currentPrice);
-            s_totalOpenInterestShort += int256(_size);
+            s_totalOpenInterestShortTokens += (_size) * (currentPrice);
+            s_totalOpenInterestShort += (_size);
         }
     }
 
@@ -184,15 +184,11 @@ contract FourbPerp {
         borrowingFee -= borrowingFee;
         isPositionLiquidatable(msg.sender);
         if (pos.isLong == true) {
-            s_totalOpenInterestLong += int256(amountToIncrease);
-            s_totalOpenInterestLongTokens += int256(
-                amountToIncrease * currentPrice
-            );
+            s_totalOpenInterestLong += (amountToIncrease);
+            s_totalOpenInterestLongTokens += (amountToIncrease * currentPrice);
         } else {
-            s_totalOpenInterestShortTokens += int256(
-                amountToIncrease * currentPrice
-            );
-            s_totalOpenInterestShort += int256(amountToIncrease);
+            s_totalOpenInterestShortTokens += (amountToIncrease * currentPrice);
+            s_totalOpenInterestShort += (amountToIncrease);
         }
         positionDetails[msg.sender] = pos;
     }
@@ -225,15 +221,11 @@ contract FourbPerp {
         }
 
         if (pos.isLong == true) {
-            s_totalOpenInterestLongTokens -= int256(
-                amountToDecrease * currentPrice
-            );
-            s_totalOpenInterestLong -= int256(amountToDecrease);
+            s_totalOpenInterestLongTokens -= (amountToDecrease * currentPrice);
+            s_totalOpenInterestLong -= (amountToDecrease);
         } else {
-            s_totalOpenInterestShortTokens -= int256(
-                amountToDecrease * currentPrice
-            );
-            s_totalOpenInterestShort -= int256(amountToDecrease);
+            s_totalOpenInterestShortTokens -= (amountToDecrease * currentPrice);
+            s_totalOpenInterestShort -= (amountToDecrease);
         }
         positionDetails[msg.sender] = pos;
     }
@@ -368,11 +360,15 @@ contract FourbPerp {
         uint256 currentPrice = getPrice();
         uint256 entryPrice = pos.entryPrice;
         if (pos.isLong) {
-            pNl = (int256(pos.size * currentPrice) -
-                int256(pos.size * entryPrice));
+            pNl = (int256(pos.size) *
+                int256(currentPrice) -
+                int256(pos.size) *
+                int256(entryPrice));
         } else {
-            pNl = (int256(pos.size * entryPrice) -
-                int256(pos.size * currentPrice));
+            pNl = (int256(pos.size) *
+                int256(entryPrice) -
+                int256(pos.size) *
+                int256(currentPrice));
         }
 
         return pNl;
@@ -405,15 +401,15 @@ contract FourbPerp {
      * add negative pnls
      */
     function totalPnL(bool isLong) internal view returns (int256 totalPNL) {
-        int256 currentPrice = int256(getPrice());
+        uint256 currentPrice = (getPrice());
         if (isLong) {
             totalPNL =
-                (s_totalOpenInterestLong * currentPrice) -
-                s_totalOpenInterestLongTokens;
+                int256(s_totalOpenInterestLong * currentPrice) -
+                int256(s_totalOpenInterestLongTokens);
         } else {
             totalPNL =
-                s_totalOpenInterestShortTokens -
-                (s_totalOpenInterestShort * currentPrice);
+                int256(s_totalOpenInterestShortTokens) -
+                int256(s_totalOpenInterestShort * currentPrice);
         }
     }
 
