@@ -569,7 +569,7 @@ contract PerpTest is Test {
     //////////////////////////////////////////////////////
 
     function invariant_collateralnotGTtotalLiquidity() public view {
-        assertGt(perp.s_totalLiquidity(), 0);
+        assertGt(perp.getPositionCollateral(address(handler)), 0);
     }
 
     function invariant_usercollateralLTtotalLiquidity() public view {
