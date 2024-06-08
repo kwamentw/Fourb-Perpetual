@@ -15,6 +15,7 @@ contract Handler is Test {
         token = new ERC20("FOURBTOKEN", "FBTKN", 18, 10000e18);
 
         token.mint(address(this), 1000e18);
+        token.mint(address(perp), 100e19);
     }
 
     function openPosition(

@@ -2,8 +2,8 @@
 pragma solidity 0.8.20;
 
 import {Test} from "forge-std/Test.sol";
-// import {Handler} from "./handler.sol";
-import {Handler} from "./handlerAg.sol";
+import {Handler} from "./handler.sol";
+// import {Handler} from "./handlerAg.sol";
 import {ERC20} from "./ERC20Mock.sol";
 import {FourbPerp} from "../src/FourbPerp.sol";
 import {StdInvariant} from "forge-std/StdInvariant.sol";
@@ -18,11 +18,11 @@ contract InvarTest is StdInvariant, Test {
         perp = new FourbPerp(address(token), 1);
         handler = new Handler(perp);
 
-        bytes4[] memory selectorss = new bytes4[](1);
-        selectorss[0] = handler.openPosition.selector;
-        targetSelector(
-            FuzzSelector({addr: address(handler), selectors: selectorss})
-        );
+        // bytes4[] memory selectorss = new bytes4[](1);
+        // selectorss[0] = handler.openPosition.selector;
+        // targetSelector(
+        //     FuzzSelector({addr: address(handler), selectors: selectorss})
+        // );
         token.mint(address(handler), 1000e18);
         // if protocol amasses earnings there must be extra tokens to pay i.e totalSupply of tokens > totalOpenInterest
         token.mint(address(perp), 1000e18);
@@ -35,10 +35,7 @@ contract InvarTest is StdInvariant, Test {
         assertGt(perp.s_totalOpenInterestShort(), 0);
     }
 
-    function invariant_CollateralAlwaysGtZeroWhenOpenAnewPosition()
-        public
-        view
-    {
-        assertGt(perp.getPositionCollateral(address(44)), 0);
+    function invariant_totalLiquidity() public view {
+        assertEq(perp.s_totalLiquidity(), handler.liquidity());
     }
 }

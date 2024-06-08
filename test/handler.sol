@@ -10,20 +10,24 @@ contract Handler is Test {
     FourbPerp perp;
     ERC20 token;
 
+    uint256 public liquidity;
+
     constructor(FourbPerp _perp) {
         perp = _perp;
         token = new ERC20("FOURBTOKEN", "FBTKN", 18, 10000e18);
+        token.mint(address(perp), 1000e18);
     }
 
-    // function addLiquidity(uint256 amount) public {
-    //     amount = bound(amount, 1e18, 100e18);
-    //     token.mint(address(this), amount);
-    //     vm.startPrank(address(this));
-    //     perp.addLiquidity(amount);
-    //     vm.stopPrank();
+    function addLiquidity(uint256 amount) public {
+        amount = bound(amount, 1e18, 100e18);
+        token.mint(address(this), amount);
+        vm.startPrank(address(this));
+        perp.addLiquidity(amount);
+        vm.stopPrank();
 
-    //     console2.log("-------- Liquidity added: ", amount);
-    // }
+        liquidity += amount;
+        console2.log("-------- Liquidity added: ", amount);
+    }
 
     // function removeLiquidity(uint256 amount) public {
     //     amount = bound(amount, 1e18, type(uint256).max);
@@ -33,26 +37,26 @@ contract Handler is Test {
     //     console2.log("------------- Liquidity removed: ", amount);
     // }
 
-    function openPosition(
-        uint256 _collateral,
-        uint256 _size,
-        bool long
-    ) external {
-        _collateral = bound(_collateral, 1e18, 1000e18);
-        _size = bound(_size, 1e18, 999e18);
+    // function openPosition(
+    //     uint256 _collateral,
+    //     uint256 _size,
+    //     bool long
+    // ) external {
+    //     _collateral = bound(_collateral, 1e18, 1000e18);
+    //     _size = bound(_size, 1e18, 999e18);
 
-        vm.startPrank(address(44));
-        token.mint(address(44), _collateral);
-        perp.openPosition(_collateral, _size, long);
+    //     vm.startPrank(address(44));
+    //     token.mint(address(44), _collateral);
+    //     perp.openPosition(_collateral, _size, long);
 
-        console2.log(
-            "------------- Position Size Opened: ",
-            _size,
-            "------------- Collateral of position: ",
-            _collateral
-        );
-        vm.stopPrank();
-    }
+    //     console2.log(
+    //         "------------- Position Size Opened: ",
+    //         _size,
+    //         "------------- Collateral of position: ",
+    //         _collateral
+    //     );
+    //     vm.stopPrank();
+    // }
 
     // function increaseSize(uint256 _amount) public {
     //     _amount = bound(_amount, 1e18, type(uint256).max);
