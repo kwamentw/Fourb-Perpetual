@@ -580,6 +580,7 @@ contract PerpTest is Test {
     function test_handlerAddLi() public {
         // handler.addLiquidity(112e18);
         handler.openPosition(50e18, 75e18, true);
+        assertGt(perp.getPositionCollateral(address(handler)), 0);
         // handler.increaseSize();
         // handler.decreaseSize();
         // handler.increaseCollateral();

@@ -13,8 +13,6 @@ contract Handler is Test {
     constructor(FourbPerp _perp) {
         perp = _perp;
         token = new ERC20("FOURBTOKEN", "FBTKN", 18, 10000e18);
-
-        token.mint(address(this), 1000e18);
     }
 
     // function addLiquidity(uint256 amount) public {
@@ -43,8 +41,8 @@ contract Handler is Test {
         _collateral = bound(_collateral, 1e18, 1000e18);
         _size = bound(_size, 1e18, 999e18);
 
-        vm.startPrank(address(this));
-        token.mint(address(this), _collateral);
+        vm.startPrank(address(44));
+        token.mint(address(44), _collateral);
         perp.openPosition(_collateral, _size, long);
 
         console2.log(
