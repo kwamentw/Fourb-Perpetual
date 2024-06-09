@@ -90,11 +90,11 @@ contract FourbPerp {
             liquidity[msg.sender] >= amount,
             "You have no liquidity in this pool"
         );
-        uint256 totalOi = (uint256(s_totalOpenInterestShort) +
-            uint256(s_totalOpenInterestLong));
-        if (amount > totalOi) {
-            revert OIGtAmont();
-        }
+        // uint256 totalOi = (uint256(s_totalOpenInterestShort) +
+        //     uint256(s_totalOpenInterestLong));
+        // if (amount > totalOi) {
+        //     revert OIGtAmont();
+        // }
 
         emit LiquidityRemoved(msg.sender, amount);
 

@@ -19,7 +19,7 @@ contract Handler is Test {
     }
 
     function addLiquidity(uint256 amount) public {
-        amount = bound(amount, 1e18, 100e18);
+        amount = bound(amount, 1e8, 50e18);
         token.mint(address(this), amount);
         vm.startPrank(address(this));
         perp.addLiquidity(amount);
@@ -29,13 +29,17 @@ contract Handler is Test {
         console2.log("-------- Liquidity added: ", amount);
     }
 
-    // function removeLiquidity(uint256 amount) public {
-    //     amount = bound(amount, 1e18, type(uint256).max);
-    //     vm.prank(address(this));
-    //     perp.removeLiquidity(amount);
+    function removeLiquidity(uint256 amount) public {
+        amount = bound(amount, 1e8, 50e18);
+        console2.log("balance is: ", perp.liquidity(address(this)));
+        vm.startPrank(address(this));
+        perp.removeLiquidity(amount);
+        vm.stopPrank();
 
-    //     console2.log("------------- Liquidity removed: ", amount);
-    // }
+        liquidity -= amount;
+
+        console2.log("------------- Liquidity removed: ", amount);
+    }
 
     // function openPosition(
     //     uint256 _collateral,
