@@ -11,6 +11,8 @@ contract Handler is Test {
     ERC20 token;
 
     uint256 public liquidity;
+    uint256 public totalOILong;
+    uint256 public totalOIShort;
 
     constructor(FourbPerp _perp) {
         perp = _perp;
@@ -41,26 +43,32 @@ contract Handler is Test {
         console2.log("------------- Liquidity removed: ", amount);
     }
 
-    // function openPosition(
-    //     uint256 _collateral,
-    //     uint256 _size,
-    //     bool long
-    // ) external {
-    //     _collateral = bound(_collateral, 1e18, 1000e18);
-    //     _size = bound(_size, 1e18, 999e18);
+    function openPosition(
+        uint256 _collateral,
+        uint256 _size,
+        bool long
+    ) external {
+        _collateral = bound(_collateral, 1e18, 100e18);
+        _size = bound(_size, 1e18, 100e18);
 
-    //     vm.startPrank(address(44));
-    //     token.mint(address(44), _collateral);
-    //     perp.openPosition(_collateral, _size, long);
+        vm.startPrank(address(this));
+        token.mint(address(this), _collateral);
+        perp.openPosition(_collateral, _size, long);
 
-    //     console2.log(
-    //         "------------- Position Size Opened: ",
-    //         _size,
-    //         "------------- Collateral of position: ",
-    //         _collateral
-    //     );
-    //     vm.stopPrank();
-    // }
+        if (long) {
+            totalOILong += _size;
+        } else {
+            totalOIShort += _size;
+        }
+
+        console2.log(
+            "------------- Position Size Opened: ",
+            _size,
+            "------------- Collateral of position: ",
+            _collateral
+        );
+        vm.stopPrank();
+    }
 
     // function increaseSize(uint256 _amount) public {
     //     _amount = bound(_amount, 1e18, type(uint256).max);

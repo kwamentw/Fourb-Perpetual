@@ -31,8 +31,8 @@ contract InvarTest is StdInvariant, Test {
     }
 
     function invariant_openInterestIncreases() public view {
-        assertGt(perp.s_totalOpenInterestLong(), 0);
-        assertGt(perp.s_totalOpenInterestShort(), 0);
+        assertEq(perp.s_totalOpenInterestLong(), handler.totalOILong());
+        assertEq(perp.s_totalOpenInterestShort(), handler.totalOIShort());
     }
 
     function invariant_totalLiquidity() public view {
