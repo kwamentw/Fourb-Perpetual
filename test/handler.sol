@@ -6,6 +6,11 @@ import {ERC20} from "./ERC20Mock.sol";
 import {console2} from "forge-std/console2.sol";
 import {FourbPerp} from "../src/FourbPerp.sol";
 
+/**
+ * @title FourbPerpetual Handler
+ * @author 4b
+ * @notice this is a handler for invariant testing
+ */
 contract Handler is Test {
     FourbPerp perp;
     ERC20 token;
