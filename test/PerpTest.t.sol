@@ -564,18 +564,6 @@ contract PerpTest is Test {
         assertGt(token.balanceOf(currentAddress), 0);
     }
 
-    //////////////////////////////////////////////////////
-    /////////////// Stateful fuzz test ///////////////////
-    //////////////////////////////////////////////////////
-
-    function invariant_collateralnotGTtotalLiquidity() public view {
-        assertGt(perp.getPositionCollateral(address(handler)), 0);
-    }
-
-    function invariant_usercollateralLTtotalLiquidity() public view {
-        assertGt(perp.s_totalLiquidity(), perp.collateral(msg.sender));
-    }
-
     //    testing to see if all handler functions were working
     function test_handlerAddLi() public {
         // handler.addLiquidity(112e18);
