@@ -25,28 +25,28 @@ contract Handler is Test {
         token.mint(address(perp), 1000e18);
     }
 
-    function addLiquidity(uint256 amount) public {
-        amount = bound(amount, 1e8, 50e18);
-        token.mint(address(this), amount);
-        vm.startPrank(address(this));
-        perp.addLiquidity(amount);
-        vm.stopPrank();
+    // function addLiquidity(uint256 amount) public {
+    //     amount = bound(amount, 1e8, 50e18);
+    //     token.mint(address(this), amount);
+    //     vm.startPrank(address(this));
+    //     perp.addLiquidity(amount);
+    //     vm.stopPrank();
 
-        liquidity += amount;
-        console2.log("-------- Liquidity added: ", amount);
-    }
+    //     liquidity += amount;
+    //     console2.log("-------- Liquidity added: ", amount);
+    // }
 
-    function removeLiquidity(uint256 amount) public {
-        amount = bound(amount, 1e8, 50e18);
-        console2.log("balance is: ", perp.liquidity(address(this)));
-        vm.startPrank(address(this));
-        perp.removeLiquidity(amount);
-        vm.stopPrank();
+    // function removeLiquidity(uint256 amount) public {
+    //     amount = bound(amount, 1e8, 50e18);
+    //     console2.log("balance is: ", perp.liquidity(address(this)));
+    //     vm.startPrank(address(this));
+    //     perp.removeLiquidity(amount);
+    //     vm.stopPrank();
 
-        liquidity -= amount;
+    //     liquidity -= amount;
 
-        console2.log("------------- Liquidity removed: ", amount);
-    }
+    //     console2.log("------------- Liquidity removed: ", amount);
+    // }
 
     function openPosition(
         uint256 _collateral,
@@ -75,24 +75,36 @@ contract Handler is Test {
         vm.stopPrank();
     }
 
-    // function increaseSize(uint256 _amount) public {
-    //     _amount = bound(_amount, 1e18, type(uint256).max);
-    //     address trader = address(this);
+    function increaseSize(uint256 _amount) public {
+        _amount = bound(_amount, 1e18, 100e18);
+        address trader = address(this);
 
-    //     vm.prank(trader);
-    //     perp.increaseSize(_amount, trader);
+        vm.prank(trader);
+        perp.increaseSize(_amount, trader);
 
-    //     console2.log("------------- Position Size increased by: ", _amount);
-    // }
+        if (perp.getPosition(trader).isLong) {
+            totalOILong += _amount;
+        } else {
+            totalOIShort += _amount;
+        }
 
-    // function decreaseSize(uint256 _amount) public {
-    //     _amount = bound(_amount, 1e18, type(uint256).max);
+        console2.log("------------- Position Size increased by: ", _amount);
+    }
 
-    //     vm.prank(address(this));
-    //     perp.decreaseSize(_amount);
+    function decreaseSize(uint256 _amount) public {
+        _amount = bound(_amount, 1e18, 100e18);
 
-    //     console2.log("------------- Position Size decreased by: ", _amount);
-    // }
+        vm.prank(address(this));
+        perp.decreaseSize(_amount);
+
+        if (perp.getPosition(address(this)).isLong) {
+            totalOILong -= _amount;
+        } else {
+            totalOIShort -= _amount;
+        }
+
+        console2.log("------------- Position Size decreased by: ", _amount);
+    }
 
     // function increaseCollateral(uint256 _amount) public {
     //     _amount = bound(_amount, 1e18, type(uint256).max);
