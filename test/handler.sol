@@ -18,6 +18,7 @@ contract Handler is Test {
     uint256 public liquidity;
     uint256 public totalOILong;
     uint256 public totalOIShort;
+    uint256 public amountDelta;
 
     constructor(FourbPerp _perp) {
         perp = _perp;
@@ -106,20 +107,20 @@ contract Handler is Test {
         console2.log("------------- Position Size decreased by: ", _amount);
     }
 
-    // function increaseCollateral(uint256 _amount) public {
-    //     _amount = bound(_amount, 1e18, type(uint256).max);
-    //     if (_amount > token.balanceOf(address(this))) {
-    //         uint256 amountDelta = _amount - token.balanceOf(address(this));
-    //         token.mint(address(this), amountDelta);
-    //     }
-    //     vm.prank(address(this));
-    //     perp.increaseCollateral(_amount);
+    function increaseCollateral(uint256 _amount) public {
+        _amount = bound(_amount, 0, 100e18);
+        if (_amount > token.balanceOf(address(this))) {
+            uint256 amountDelta1 = _amount - token.balanceOf(address(this));
+            token.mint(address(this), amountDelta1);
+        }
 
-    //     console2.log(
-    //         "------------- Postion Collateral increased by: ",
-    //         _amount
-    //     );
-    // }
+        vm.prank(address(this));
+        perp.increaseCollateral(_amount);
+        console2.log(
+            "------------- Postion Collateral increased by: ",
+            _amount
+        );
+    }
 
     // function decreaseCollateral(uint256 _amount) public {
     //     _amount = bound(_amount, 1e18, type(uint256).max);
