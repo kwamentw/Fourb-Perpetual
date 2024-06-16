@@ -23,6 +23,8 @@ contract InvarTest is StdInvariant, Test {
         // targetSelector(
         //     FuzzSelector({addr: address(handler), selectors: selectorss})
         // );
+
+        // Note: it is always necessary to fund the handler to get your tests to work.
         token.mint(address(handler), 1000e18);
         // if protocol amasses earnings there must be extra tokens to pay i.e totalSupply of tokens > totalOpenInterest
         token.mint(address(perp), 1000e18);

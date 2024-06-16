@@ -23,31 +23,31 @@ contract Handler is Test {
     constructor(FourbPerp _perp) {
         perp = _perp;
         token = new ERC20("FOURBTOKEN", "FBTKN", 18, 10000e18);
-        token.mint(address(perp), 1000e18);
+        // token.mint(address(perp), 1000e18);
     }
 
-    // function addLiquidity(uint256 amount) public {
-    //     amount = bound(amount, 1e8, 50e18);
-    //     token.mint(address(this), amount);
-    //     vm.startPrank(address(this));
-    //     perp.addLiquidity(amount);
-    //     vm.stopPrank();
+    function addLiquidity(uint256 amount) public {
+        amount = bound(amount, 1e8, 50e18);
+        token.mint(address(this), amount);
+        vm.startPrank(address(this));
+        perp.addLiquidity(amount);
+        vm.stopPrank();
 
-    //     liquidity += amount;
-    //     console2.log("-------- Liquidity added: ", amount);
-    // }
+        liquidity += amount;
+        console2.log("-------- Liquidity added: ", amount);
+    }
 
-    // function removeLiquidity(uint256 amount) public {
-    //     amount = bound(amount, 1e8, 50e18);
-    //     console2.log("balance is: ", perp.liquidity(address(this)));
-    //     vm.startPrank(address(this));
-    //     perp.removeLiquidity(amount);
-    //     vm.stopPrank();
+    function removeLiquidity(uint256 amount) public {
+        amount = bound(amount, 1e8, 50e18);
+        console2.log("balance is: ", perp.liquidity(address(this)));
+        vm.startPrank(address(this));
+        perp.removeLiquidity(amount);
+        vm.stopPrank();
 
-    //     liquidity -= amount;
+        liquidity -= amount;
 
-    //     console2.log("------------- Liquidity removed: ", amount);
-    // }
+        console2.log("------------- Liquidity removed: ", amount);
+    }
 
     function openPosition(
         uint256 _collateral,
@@ -80,7 +80,7 @@ contract Handler is Test {
         _amount = bound(_amount, 1e18, 100e18);
         address trader = address(this);
 
-        vm.prank(trader);
+        vm.startPrank(trader);
         perp.increaseSize(_amount, trader);
 
         if (perp.getPosition(trader).isLong) {
@@ -89,14 +89,17 @@ contract Handler is Test {
             totalOIShort += _amount;
         }
 
+        vm.stopPrank();
+
         console2.log("------------- Position Size increased by: ", _amount);
     }
 
     function decreaseSize(uint256 _amount) public {
         _amount = bound(_amount, 1e18, 100e18);
 
-        vm.prank(address(this));
+        vm.startPrank(address(this));
         perp.decreaseSize(_amount);
+        vm.stopPrank();
 
         if (perp.getPosition(address(this)).isLong) {
             totalOILong -= _amount;
@@ -114,35 +117,38 @@ contract Handler is Test {
             token.mint(address(this), amountDelta1);
         }
 
-        vm.prank(address(this));
+        vm.startPrank(address(this));
         perp.increaseCollateral(_amount);
         console2.log(
             "------------- Postion Collateral increased by: ",
             _amount
         );
+        vm.stopPrank();
     }
 
-    // function decreaseCollateral(uint256 _amount) public {
-    //     _amount = bound(_amount, 1e18, type(uint256).max);
+    function decreaseCollateral(uint256 _amount) public {
+        _amount = bound(_amount, 0, 100e18);
 
-    //     vm.prank(address(this));
-    //     perp.decreaseCollateral(_amount);
+        vm.startPrank(address(this));
+        perp.decreaseCollateral(_amount);
+        vm.stopPrank();
 
-    //     console2.log(
-    //         "------------- Position collateral decreased by: ",
-    //         _amount
-    //     );
-    // }
+        console2.log(
+            "------------- Position collateral decreased by: ",
+            _amount
+        );
+    }
 
-    // function liquidate(address liquidator) public {
-    //     vm.prank(liquidator);
-    //     perp.liquidate(address(this));
+    function liquidate(address liquidator) public {
+        vm.startPrank(liquidator);
+        perp.liquidate(address(this));
+        vm.stopPrank();
 
-    //     console2.log(
-    //         "------------- Position Liquidated: ",
-    //         perp.getPositionCollateral(address(this))
-    //     );
-    // }
+        console2.log(
+            "------------- Position Liquidated: END OF STORY: ",
+            perp.getPositionCollateral(address(this))
+        );
+    }
 
     // function getUserCollateral() external view returns (uint256) {
     //     return perp.getPositionCollateral(address(this));

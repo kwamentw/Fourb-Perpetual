@@ -126,7 +126,10 @@ contract FourbPerp {
     ) external {
         require(_collateral > 10, "Collateral can't be less than 10");
         require(_size > 0, "Postion Size must be > 0");
-        require(_size >= (MAX_LEVERAGE * s_totalLiquidity) / 100);
+        require(
+            _size >= (MAX_LEVERAGE * s_totalLiquidity) / 100,
+            "Doesnt meet leverage criteria"
+        );
         // its supposed to `getPrice()` from chainlink
         uint256 currentPrice = 12;
 
@@ -199,7 +202,7 @@ contract FourbPerp {
     function decreaseSize(uint256 amountToDecrease) external {
         require(amountToDecrease > 0, "You cant decrease nothing");
         Position memory pos = getPosition(msg.sender);
-        require(pos.size >= amountToDecrease);
+        require(pos.size >= amountToDecrease, "this can lead to an underflow");
         uint256 positionFee = (amountToDecrease * 3) / 1000;
         uint256 currentPrice = getPrice();
         int256 pnl;
@@ -239,6 +242,7 @@ contract FourbPerp {
 
         emit PositionIncrease(amountToIncrease, true);
         Position memory pos = getPosition(msg.sender);
+        require(pos.size > 0, "postion not opened");
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;
@@ -255,7 +259,7 @@ contract FourbPerp {
     function decreaseCollateral(uint256 amountToDecrease) external {
         require(amountToDecrease > 0, "You cannot decrease nothing");
         Position memory pos = getPosition(msg.sender);
-        require(pos.collateral >= amountToDecrease);
+        require(pos.collateral >= amountToDecrease, "You can't decrease zero");
 
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
@@ -274,6 +278,7 @@ contract FourbPerp {
      * some protocols use the `decrease` functions to liquidate- i gotta check that out
      */
     function liquidate(address trader) external {
+        uint256 fee;
         require(msg.sender != address(0));
         require(msg.sender != trader);
         require(isPositionLiquidatable(trader), "Not liquidatable");
@@ -284,10 +289,11 @@ contract FourbPerp {
         int256 pnl = calcPnL(trader);
         if (pnl < 0) {
             pos.collateral -= uint256(pnl);
+            fee = (pos.collateral * 3) / 10000;
         } else if (pnl >= 0) {
             pos.collateral += uint256(pnl);
+            fee = (pos.collateral * 3) / 10000;
         }
-        uint256 fee = (pos.collateral * 3) / 10000;
 
         emit PositionLiquidated(trader, pos.collateral);
         pos.collateral -= fee;
