@@ -8,6 +8,10 @@ import {ERC20} from "./ERC20Mock.sol";
 import {FourbPerp} from "../src/FourbPerp.sol";
 import {StdInvariant} from "forge-std/StdInvariant.sol";
 
+/**
+ * @title Invariant Test suite
+ * @author kwame 4b
+ */
 contract InvarTest is StdInvariant, Test {
     ERC20 token;
     Handler handler;
