@@ -121,7 +121,7 @@ contract FourbPerp {
         require(_collateral > 10, "Collateral can't be less than 10");
         require(_size > 0, "Postion Size must be > 0");
         require(
-            _size >= (MAX_LEVERAGE * s_totalLiquidity) / 100,
+            _size <= (MAX_LEVERAGE * _collateral) / 100,
             "Doesnt meet leverage criteria"
         );
         // its supposed to `getPrice()` from chainlink
@@ -236,7 +236,7 @@ contract FourbPerp {
 
         emit PositionIncrease(amountToIncrease, true);
         Position memory pos = getPosition(msg.sender);
-        require(pos.size > 0, "postion not opened");
+        require(pos.collateral > 0, "postion not opened");
         uint256 secondsSincePositionWasUpdated = block.timestamp > pos.timestamp
             ? block.timestamp - pos.timestamp
             : 0;

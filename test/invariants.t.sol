@@ -44,4 +44,8 @@ contract InvarTest is StdInvariant, Test {
     function invariant_totalLiquidity() public view {
         assertEq(perp.s_totalLiquidity(), handler.liquidity());
     }
+
+    function invariant_CollateralShdNeverBeNeg() public view {
+        assertGe(handler.collateral(), 0);
+    }
 }

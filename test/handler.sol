@@ -18,7 +18,7 @@ contract Handler is Test {
     uint256 public liquidity;
     uint256 public totalOILong;
     uint256 public totalOIShort;
-    uint256 public amountDelta;
+    uint256 public collateral;
 
     constructor(FourbPerp _perp) {
         perp = _perp;
@@ -74,6 +74,8 @@ contract Handler is Test {
             _collateral
         );
         vm.stopPrank();
+
+        collateral = perp.getPositionCollateral(address(this));
     }
 
     function increaseSize(uint256 _amount) public {
@@ -124,6 +126,8 @@ contract Handler is Test {
             _amount
         );
         vm.stopPrank();
+
+        collateral += _amount;
     }
 
     function decreaseCollateral(uint256 _amount) public {
@@ -137,6 +141,7 @@ contract Handler is Test {
             "------------- Position collateral decreased by: ",
             _amount
         );
+        collateral -= _amount;
     }
 
     function liquidate(address liquidator) public {
@@ -148,9 +153,6 @@ contract Handler is Test {
             "------------- Position Liquidated: END OF STORY: ",
             perp.getPositionCollateral(address(this))
         );
+        collateral = 0;
     }
-
-    // function getUserCollateral() external view returns (uint256) {
-    //     return perp.getPositionCollateral(address(this));
-    // }
 }
