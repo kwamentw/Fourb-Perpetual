@@ -6,7 +6,8 @@ Project is a practice project aimed at learning how perpetuals work by building,
 
 Most of the features implemented was based on Owen Thurm's side quest
 
-PLEASE DO NOT USE THIS CONTRACT IT IS FOR LEARNING PURPOSES
+PLEASE DO NOT USE THIS CONTRACT, IT IS FOR LEARNING PURPOSES ONLY.
+
 ## Usage
 
 ### Build
@@ -21,18 +22,11 @@ $ forge build
 $ forge test
 ```
 
-### Format
-
-```shell
-$ forge fmt
-```
-
 ### Gas Snapshots
 
 ```shell
 $ forge snapshot
 ```
-
 
 ### Help
 
