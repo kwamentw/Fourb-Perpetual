@@ -36,15 +36,26 @@ contract InvarTest is StdInvariant, Test {
         targetContract(address(handler));
     }
 
+    /**
+     * Invariant test to check whether total open interest increases and decreases
+     * with opening positions and liquidating positons respectively
+     */
     function invariant_openInterestIncreases() public view {
         assertEq(perp.s_totalOpenInterestLong(), handler.totalOILong());
         assertEq(perp.s_totalOpenInterestShort(), handler.totalOIShort());
     }
 
+    /**
+     * Invariant to test whether AddLiquidity and removeLiquidity works
+     * In the sense that total liquidity form the test always equals what the protocol has
+     */
     function invariant_totalLiquidity() public view {
         assertEq(perp.s_totalLiquidity(), handler.liquidity());
     }
 
+    /**
+     * Invariant test to verify that collateral can never be negative
+     */
     function invariant_CollateralShdNeverBeNeg() public view {
         assertGe(handler.collateral(), 0);
     }

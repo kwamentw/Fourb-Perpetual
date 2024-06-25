@@ -12,34 +12,42 @@ import {pricefeed} from "./PriceFeed.sol";
  */
 contract FourbPerp {
     /////////////////// events ///////////////////////
-    event Update(uint256 timeSinceUpdate, bool isUpdate);
-    event PositionLiquidated(address liquidated, uint256 collateral);
-    event PositionIncrease(uint256 amountToIncrease, bool isCollateral);
-    event PositionDecrease(uint256 amountToDecrease, bool isCollateral);
-    event PositionOpened(address sender, uint256 positionSize, bool isLOng);
-    event LiquidityAdded(address liquidityProvider, uint256 amount);
-    event LiquidityRemoved(address liquidityProvider, uint256 amount);
+    event Update(uint256 timeSinceUpdate, bool isUpdate); // emits an update event when ever a position is updated
+    event PositionLiquidated(address liquidated, uint256 collateral); // emits an event whenever a position is liquidated
+    event PositionIncrease(uint256 amountToIncrease, bool isCollateral); // emits an event when the position is increased
+    event PositionDecrease(uint256 amountToDecrease, bool isCollateral); // emits an event when the position is decreased
+    event PositionOpened(address sender, uint256 positionSize, bool isLOng); // emits an event when a new position is opened
+    event LiquidityAdded(address liquidityProvider, uint256 amount); // emits liquidity added when there's new liquidity added to the pool
+    event LiquidityRemoved(address liquidityProvider, uint256 amount); // emits when liquidity is removed from protocol
 
-    // Price feed
+    // chainlink Price feed
     pricefeed private PriceFeed;
     // Token
     ERC20 private token;
 
     /////////////////////// mappings ////////////////////////////
-    mapping(address => uint256) public collateral;
-    mapping(address => uint256) public liquidity;
-    mapping(address => Position) public positionDetails;
+    mapping(address => uint256) public collateral; // for testing purposes
+    mapping(address => uint256) public liquidity; // stores the addresses that provided liquidity and the amount
+    mapping(address => Position) public positionDetails; // keeps track of the positions opened
 
     /////////////////// Storage variables ///////////////////////
-    uint256 immutable MAX_LEVERAGE = 150;
-    uint256 public s_totalLiquidity;
-    uint256 public s_totalOpenInterestLong;
-    uint256 public s_totalOpenInterestLongTokens;
-    uint256 public s_totalOpenInterestShort;
-    uint256 public s_totalOpenInterestShortTokens;
-    uint256 public s_borrowingPerSharePerSecond;
+    uint256 immutable MAX_LEVERAGE = 150; // max leverage a protocol allows a user to use i.e 150% of collateral
+    uint256 public s_totalLiquidity; // total liquidity added by LPs
+    uint256 public s_totalOpenInterestLong; // sum of all opened long positions
+    uint256 public s_totalOpenInterestLongTokens; // sum of all long positions in tokens
+    uint256 public s_totalOpenInterestShort; // sum of all opened short positions
+    uint256 public s_totalOpenInterestShortTokens; //sum of all opened short postions in tokens
+    uint256 public s_borrowingPerSharePerSecond; // rate for the borrowed share pre second
 
     ///////////////////////// structs /////////////////////////////
+    /**
+     * Struct for storing postion details
+     * @param entryPrice the price at which position was opened
+     * @param collateral the amount of collateral backing this position
+     * @param isLong boolean to affirm whether position is long
+     * @param size the size of the position opened
+     * @param timestamp time at which position opened
+     */
     struct Position {
         uint256 entryPrice;
         uint256 collateral;
