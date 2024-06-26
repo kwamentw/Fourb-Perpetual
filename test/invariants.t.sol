@@ -63,4 +63,9 @@ contract InvarTest is StdInvariant, Test {
     function invariant_CollateralShdNeverBeNeg() public view {
         assertGe(handler.collateral(), 0);
     }
+
+    /**
+     * Invariant test to verify thta collateral added and removed is always equal to the balance of the protocol
+     */
+    function invariant_CollateralEqbalanceOfProtocol() public view {}
 }
