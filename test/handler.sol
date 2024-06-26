@@ -12,12 +12,18 @@ import {FourbPerp} from "../src/FourbPerp.sol";
  * @notice this is a handler for invariant testing
  */
 contract Handler is Test {
+    // main contract
     FourbPerp perp;
+    // underlying token
     ERC20 token;
 
+    // tracks the total amount of liquidity
     uint256 public liquidity;
+    // tracks total Open Interest for long positions
     uint256 public totalOILong;
+    // tracks total open interest for short positions
     uint256 public totalOIShort;
+    // tracks total collateral this contract added
     uint256 public collateral;
 
     constructor(FourbPerp _perp) {

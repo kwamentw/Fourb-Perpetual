@@ -13,8 +13,11 @@ import {StdInvariant} from "forge-std/StdInvariant.sol";
  * @author kwame 4b
  */
 contract InvarTest is StdInvariant, Test {
+    // underlying token
     ERC20 token;
+    // Test handler: when all calls will be made to
     Handler handler;
+    // main contract
     FourbPerp perp;
 
     function setUp() public {
@@ -33,6 +36,7 @@ contract InvarTest is StdInvariant, Test {
         // if protocol amasses earnings there must be extra tokens to pay i.e totalSupply of tokens > totalOpenInterest
         token.mint(address(perp), 1000e18);
 
+        // target contract to fuzz == handler
         targetContract(address(handler));
     }
 
