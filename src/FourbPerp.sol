@@ -427,4 +427,11 @@ contract FourbPerp {
     function getTotalPnL(bool isLong) external view returns (int256 totalPNL) {
         totalPNL = totalPnL(isLong);
     }
+
+    /**
+     * Returns balance of this contract
+     */
+    function getBalof() external view returns (uint256) {
+        return token.balanceOf(address(this));
+    }
 }
