@@ -429,9 +429,9 @@ contract FourbPerp {
     }
 
     /**
-     * Returns balance of this contract
+     * Returns token balance of this contract
      */
-    function getBalof() external view returns (uint256) {
+    function getBalOf() external view returns (uint256) {
         return token.balanceOf(address(this));
     }
 }

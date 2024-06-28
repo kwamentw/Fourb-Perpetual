@@ -67,7 +67,7 @@ contract InvarTest is StdInvariant, Test {
     /**
      * Invariant test to verify thta collateral added and removed is always equal to the balance of the protocol
      */
-    function invariant_CollateralEqbalanceOfProtocol() public view {
-        assertEq(perp.getBalof(), handler.collateral() + handler.liquidity());
+    function invariant_CollateralEqbalOfProtocol() public view {
+        assertEq(perp.getBalOf(), handler.collateral() + handler.liquidity());
     }
 }
