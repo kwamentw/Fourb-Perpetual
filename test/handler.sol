@@ -28,7 +28,7 @@ contract Handler is Test {
 
     constructor(FourbPerp _perp) {
         perp = _perp;
-        token = new ERC20("FOURBTOKEN", "FBTKN", 18, 10000e18);
+        token = new ERC20("FOURBTOKEN", "FBTKN", 18, 1000e18);
         // token.mint(address(perp), 1000e18);
     }
 

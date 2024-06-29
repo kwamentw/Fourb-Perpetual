@@ -26,7 +26,6 @@ contract FourbPerp {
     ERC20 private token;
 
     /////////////////////// mappings ////////////////////////////
-    mapping(address => uint256) public collateral; // for testing purposes
     mapping(address => uint256) public liquidity; // stores the addresses that provided liquidity and the amount
     mapping(address => Position) public positionDetails; // keeps track of the positions opened
 
@@ -38,6 +37,7 @@ contract FourbPerp {
     uint256 public s_totalOpenInterestShort; // sum of all opened short positions
     uint256 public s_totalOpenInterestShortTokens; //sum of all opened short postions in tokens
     uint256 public s_borrowingPerSharePerSecond; // rate for the borrowed share pre second
+    uint256 public s_totalCollateral;
 
     ///////////////////////// structs /////////////////////////////
     /**
@@ -60,6 +60,7 @@ contract FourbPerp {
     constructor(address _token, uint256 _borrowingPerSharePerSecond) {
         token = ERC20(_token);
         s_borrowingPerSharePerSecond = _borrowingPerSharePerSecond;
+        s_totalCollateral = token.balanceOf(address(this));
     }
 
     //////////////////////////// Functions /////////////////////////////////////
@@ -155,6 +156,8 @@ contract FourbPerp {
             s_totalOpenInterestShortTokens += (_size) * (currentPrice);
             s_totalOpenInterestShort += (_size);
         }
+
+        updateCollateral();
     }
 
     /**
@@ -253,6 +256,7 @@ contract FourbPerp {
         pos.collateral += amountToIncrease;
         token.transferFrom(msg.sender, address(this), amountToIncrease);
         positionDetails[msg.sender] = pos;
+        updateCollateral();
     }
 
     /**
@@ -273,6 +277,7 @@ contract FourbPerp {
         isPositionLiquidatable(msg.sender);
         token.transferFrom(address(this), msg.sender, amountToDecrease);
         positionDetails[msg.sender] = pos;
+        updateCollateral();
     }
 
     /**
@@ -303,6 +308,8 @@ contract FourbPerp {
         token.transferFrom(address(this), trader, pos.collateral);
         token.transfer(msg.sender, fee);
         delete positionDetails[trader];
+
+        updateCollateral();
     }
 
     /**
@@ -428,10 +435,7 @@ contract FourbPerp {
         totalPNL = totalPnL(isLong);
     }
 
-    /**
-     * Returns token balance of this contract
-     */
-    function getBalOf() external view returns (uint256) {
-        return token.balanceOf(address(this));
+    function updateCollateral() internal {
+        s_totalCollateral = token.balanceOf(address(this));
     }
 }

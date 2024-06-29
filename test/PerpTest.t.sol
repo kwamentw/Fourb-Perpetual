@@ -159,7 +159,10 @@ contract PerpTest is Test {
 
         vm.stopPrank();
 
-        console2.log("remaining collateral: ", perp.collateral(address(39)));
+        console2.log(
+            "remaining collateral: ",
+            perp.getPositionCollateral(address(39))
+        );
     }
 
     /**

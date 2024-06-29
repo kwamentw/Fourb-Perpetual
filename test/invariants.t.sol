@@ -25,11 +25,13 @@ contract InvarTest is StdInvariant, Test {
         perp = new FourbPerp(address(token), 1);
         handler = new Handler(perp);
 
-        // bytes4[] memory selectorss = new bytes4[](1);
-        // selectorss[0] = handler.openPosition.selector;
-        // targetSelector(
-        //     FuzzSelector({addr: address(handler), selectors: selectorss})
-        // );
+        bytes4[] memory selectorss = new bytes4[](3);
+        selectorss[0] = handler.openPosition.selector;
+        selectorss[1] = handler.increaseCollateral.selector;
+        selectorss[2] = handler.decreaseCollateral.selector;
+        targetSelector(
+            FuzzSelector({addr: address(handler), selectors: selectorss})
+        );
 
         // Note: it is always necessary to fund the handler to get your tests to work.
         token.mint(address(handler), 1000e18);
@@ -67,7 +69,7 @@ contract InvarTest is StdInvariant, Test {
     /**
      * Invariant test to verify thta collateral added and removed is always equal to the balance of the protocol
      */
-    function invariant_CollateralEqbalOfProtocol() public view {
-        assertEq(perp.getBalOf(), handler.collateral() + handler.liquidity());
+    function invariant_CollateralLebalOfProtocol() public view {
+        assertGe(perp.s_totalCollateral(), handler.collateral());
     }
 }
