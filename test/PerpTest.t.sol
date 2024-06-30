@@ -14,14 +14,6 @@ contract PerpTest is Test {
     ERC20 token;
     Handler handler;
 
-    struct Position {
-        uint256 entryPrice;
-        uint256 collateral;
-        bool isLong;
-        uint256 size;
-        uint256 timestamp;
-    }
-
     function setUp() public {
         token = new ERC20("CustomToken", "CSTM-TKN", 18, 1000e18);
         perp = new FourbPerp(address(token), 0);
@@ -282,6 +274,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Test to see whether Profit working for short postions
+     */
     function testforProfitShort() public {
         token.mint(address(3), 30e18);
         vm.startPrank(address(3));
@@ -292,6 +287,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Test to see whether losses are computed in short positions
+     */
     function testforLossShort() public {
         token.mint(address(3), 22e18);
         vm.startPrank(address(3));
@@ -338,6 +336,9 @@ contract PerpTest is Test {
         assertGt(totalPNL, 0, "Check your params");
     }
 
+    /**
+     * Test to see if position is liquidatable
+     */
     function testIsPositionLiquidatable() public {
         token.mint(address(3), 50e18);
         vm.startPrank(address(3));
@@ -568,7 +569,7 @@ contract PerpTest is Test {
     }
 
     //    testing to see if all handler functions were working
-    function test_handlerAddLi() public {
+    function test_handlerFuncs() public {
         // handler.addLiquidity(112e18);
         // handler.openPosition(50e18, 75e18, true);
         // assertGt(perp.getPositionCollateral(address(handler)), 0);
