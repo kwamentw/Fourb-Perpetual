@@ -435,6 +435,9 @@ contract FourbPerp {
         totalPNL = totalPnL(isLong);
     }
 
+    /**
+     * Updates total collateral of protocol
+     */
     function updateCollateral() internal {
         s_totalCollateral = token.balanceOf(address(this));
     }

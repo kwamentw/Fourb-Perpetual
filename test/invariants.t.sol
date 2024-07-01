@@ -15,7 +15,7 @@ import {StdInvariant} from "forge-std/StdInvariant.sol";
 contract InvarTest is StdInvariant, Test {
     // underlying token
     ERC20 token;
-    // Test handler: when all calls will be made to
+    // Test handler: where all calls will be made to
     Handler handler;
     // main contract
     FourbPerp perp;
@@ -25,6 +25,7 @@ contract InvarTest is StdInvariant, Test {
         perp = new FourbPerp(address(token), 1);
         handler = new Handler(perp);
 
+        // Block of code responsible for running a fuzz tests with some selected functions listed below
         bytes4[] memory selectorss = new bytes4[](3);
         selectorss[0] = handler.openPosition.selector;
         selectorss[1] = handler.increaseCollateral.selector;
@@ -46,7 +47,7 @@ contract InvarTest is StdInvariant, Test {
      * Invariant test to check whether total open interest increases and decreases
      * with opening positions and liquidating positons respectively
      */
-    function invariant_openInterestIncreases() public view {
+    function invariant_openInterestIncreasesAndDecreases() public view {
         assertEq(perp.s_totalOpenInterestLong(), handler.totalOILong());
         assertEq(perp.s_totalOpenInterestShort(), handler.totalOIShort());
     }
@@ -67,7 +68,7 @@ contract InvarTest is StdInvariant, Test {
     }
 
     /**
-     * Invariant test to verify thta collateral added and removed is always equal to the balance of the protocol
+     * Invariant test to verify that collateral added and removed is always greater than or equal to the total balance of the protocol
      */
     function invariant_CollateralLebalOfProtocol() public view {
         assertGe(perp.s_totalCollateral(), handler.collateral());

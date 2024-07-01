@@ -32,6 +32,10 @@ contract Handler is Test {
         // token.mint(address(perp), 1000e18);
     }
 
+    /**
+     * Adding liquidity to protocol
+     * @param amount amount of liquidity to add
+     */
     function addLiquidity(uint256 amount) public {
         amount = bound(amount, 1e8, 50e18);
         token.mint(address(this), amount);
@@ -43,6 +47,10 @@ contract Handler is Test {
         console2.log("-------- Liquidity added: ", amount);
     }
 
+    /**
+     * Removing liquidity from protocol
+     * @param amount amount to remove
+     */
     function removeLiquidity(uint256 amount) public {
         amount = bound(amount, 1e8, 50e18);
         console2.log("balance is: ", perp.liquidity(address(this)));
@@ -55,6 +63,12 @@ contract Handler is Test {
         console2.log("------------- Liquidity removed: ", amount);
     }
 
+    /**
+     * Opens a position
+     * @param _collateral amount of collateral backing the position
+     * @param _size size of position opened
+     * @param long type of position
+     */
     function openPosition(
         uint256 _collateral,
         uint256 _size,
@@ -84,6 +98,10 @@ contract Handler is Test {
         collateral = perp.getPositionCollateral(address(this));
     }
 
+    /**
+     * Increases size of position opened
+     * @param _amount amount of size to increase
+     */
     function increaseSize(uint256 _amount) public {
         _amount = bound(_amount, 1e18, 100e18);
         address trader = address(this);
@@ -102,6 +120,10 @@ contract Handler is Test {
         console2.log("------------- Position Size increased by: ", _amount);
     }
 
+    /**
+     * Decreases size of position
+     * @param _amount Size amount to decrease
+     */
     function decreaseSize(uint256 _amount) public {
         _amount = bound(_amount, 1e18, 100e18);
 
@@ -118,6 +140,10 @@ contract Handler is Test {
         console2.log("------------- Position Size decreased by: ", _amount);
     }
 
+    /**
+     * Increases the collateral backing the position
+     * @param _amount amount of collateral
+     */
     function increaseCollateral(uint256 _amount) public {
         _amount = bound(_amount, 0, 100e18);
         if (_amount > token.balanceOf(address(this))) {
@@ -136,6 +162,10 @@ contract Handler is Test {
         collateral += _amount;
     }
 
+    /**
+     * Decreases collateral backing the position
+     * @param _amount amount to decrease
+     */
     function decreaseCollateral(uint256 _amount) public {
         _amount = bound(_amount, 0, 100e18);
 
@@ -150,6 +180,10 @@ contract Handler is Test {
         collateral -= _amount;
     }
 
+    /**
+     * Liquidates opened position
+     * @param liquidator address of liquidator && liquidator != owner of position
+     */
     function liquidate(address liquidator) public {
         vm.startPrank(liquidator);
         perp.liquidate(address(this));

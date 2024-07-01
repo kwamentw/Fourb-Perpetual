@@ -10,8 +10,12 @@ import {Handler} from "./handler.sol";
 
 contract PerpTest is Test {
     // initializing contracts needed
+
+    // protocol being tested
     FourbPerp perp;
+    // underlying token
     ERC20 token;
+    // handler contract for testing
     Handler handler;
 
     function setUp() public {
