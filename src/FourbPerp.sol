@@ -19,6 +19,7 @@ contract FourbPerp {
     event PositionOpened(address sender, uint256 positionSize, bool isLOng); // emits an event when a new position is opened
     event LiquidityAdded(address liquidityProvider, uint256 amount); // emits liquidity added when there's new liquidity added to the pool
     event LiquidityRemoved(address liquidityProvider, uint256 amount); // emits when liquidity is removed from protocol
+    event PositionClosed(address user, uint256 collateral); //emits an event when user closes his position
 
     // chainlink Price feed
     pricefeed private PriceFeed;
@@ -127,7 +128,11 @@ contract FourbPerp {
         uint256 _size,
         bool long
     ) external {
-        require(_collateral > 10, "Collateral can't be less than 10");
+        require(
+            positionDetails[msg.sender].size == 0,
+            "position already opened"
+        );
+        require(_collateral > 1e5, "Collateral can't be less than 100000");
         require(_size > 0, "Postion Size must be > 0");
         require(
             _size <= (MAX_LEVERAGE * _collateral) / 100,
@@ -158,6 +163,34 @@ contract FourbPerp {
         }
 
         updateCollateral();
+    }
+
+    function closePosition(address account) public {
+        uint256 fee;
+        Position memory position = positionDetails[account];
+
+        if (position.isLong == true) {
+            require(
+                account == msg.sender,
+                "You cannot close someone elses position"
+            );
+
+            int256 pnl = calcPnL(account);
+            if (pnl < 0) {
+                position.collateral -= uint256(pnl);
+                fee = (position.collateral * 3) / 10000;
+            } else if (pnl >= 0) {
+                position.collateral += uint256(pnl);
+                fee = (position.collateral * 3) / 10000;
+            }
+            uint256 collateral = position.collateral - fee;
+            delete positionDetails[account];
+
+            token.transfer(msg.sender, collateral);
+            emit PositionClosed(msg.sender, collateral);
+        } else {
+            revert("yet to do");
+        }
     }
 
     /**
@@ -290,7 +323,7 @@ contract FourbPerp {
         require(msg.sender != trader);
         require(isPositionLiquidatable(trader), "Not liquidatable");
         Position memory pos = getPosition(trader);
-        require(pos.collateral > 0, "inavlid position cannot liquidate");
+        require(pos.collateral > 1e4, "inavlid position cannot liquidate");
 
         uint256 borrowingFee = calcBorrowingFees(trader);
         int256 pnl = calcPnL(trader);
@@ -302,8 +335,8 @@ contract FourbPerp {
             fee = (pos.collateral * 3) / 10000;
         }
 
+        // pos.collateral -= fee;
         emit PositionLiquidated(trader, pos.collateral);
-        pos.collateral -= fee;
         token.transferFrom(trader, address(this), borrowingFee);
         token.transferFrom(address(this), trader, pos.collateral);
         token.transfer(msg.sender, fee);
@@ -351,8 +384,8 @@ contract FourbPerp {
      */
     function calcBorrowingFees(address trader) internal view returns (uint256) {
         Position memory pos = positionDetails[trader];
+        if ((block.timestamp - pos.timestamp) == 0) return 0;
         uint256 pendingBorrowingFees = (pos.size *
-            (block.timestamp - pos.timestamp) *
             s_borrowingPerSharePerSecond) / 10000;
 
         return pendingBorrowingFees;

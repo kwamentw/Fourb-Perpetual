@@ -98,6 +98,15 @@ contract Handler is Test {
         collateral = perp.getPositionCollateral(address(this));
     }
 
+    function closePosition() external {
+        vm.startPrank(address(this));
+        perp.closePosition(address(this));
+
+        vm.stopPrank();
+
+        console2.log("------------------ Postion Closed --------------------");
+    }
+
     /**
      * Increases size of position opened
      * @param _amount amount of size to increase

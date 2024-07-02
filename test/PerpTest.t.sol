@@ -109,9 +109,25 @@ contract PerpTest is Test {
     function test_OpenPositon() public {
         vm.startPrank(address(39));
         token.mint(address(39), 11e18);
-        perp.openPosition(10e18, 100e18, true);
+        perp.openPosition(10e18, 20e18, true);
 
         assertEq(perp.getPosition(address(39)).collateral, 10e18);
+
+        vm.stopPrank();
+    }
+
+    function test_ClosePositionForLong() public {
+        vm.startPrank(address(40));
+        token.mint(address(40), 90e18);
+        perp.openPosition(90e18, 125e18, true);
+
+        assertEq(perp.getPositionCollateral(address(40)), 90e18);
+        assertEq(perp.getPosition(address(40)).size, 125e18);
+
+        perp.closePosition(address(40));
+
+        assertEq(perp.getPostionSize(address(40)), 0);
+        assertEq(perp.getPositionCollateral(address(40)), 0);
 
         vm.stopPrank();
     }

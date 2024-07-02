@@ -26,13 +26,13 @@ contract InvarTest is StdInvariant, Test {
         handler = new Handler(perp);
 
         // Block of code responsible for running a fuzz tests with some selected functions listed below
-        bytes4[] memory selectorss = new bytes4[](3);
-        selectorss[0] = handler.openPosition.selector;
-        selectorss[1] = handler.increaseCollateral.selector;
-        selectorss[2] = handler.decreaseCollateral.selector;
-        targetSelector(
-            FuzzSelector({addr: address(handler), selectors: selectorss})
-        );
+        // bytes4[] memory selectorss = new bytes4[](3);
+        // selectorss[0] = handler.openPosition.selector;
+        // selectorss[1] = handler.increaseCollateral.selector;
+        // selectorss[2] = handler.decreaseCollateral.selector;
+        // targetSelector(
+        //     FuzzSelector({addr: address(handler), selectors: selectorss})
+        // );
 
         // Note: it is always necessary to fund the handler to get your tests to work.
         token.mint(address(handler), 1000e18);
