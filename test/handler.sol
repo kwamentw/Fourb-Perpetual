@@ -100,9 +100,17 @@ contract Handler is Test {
 
     function closePosition() external {
         vm.startPrank(address(this));
+        bool long = perp.getPosition(address(this)).isLong;
+        uint256 _size = perp.getPosition(address(this)).size;
         perp.closePosition(address(this));
 
         vm.stopPrank();
+
+        if (long) {
+            totalOILong -= _size;
+        } else {
+            totalOIShort -= _size;
+        }
 
         console2.log("------------------ Postion Closed --------------------");
     }

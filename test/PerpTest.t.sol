@@ -132,6 +132,22 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    function test_ClosePositionForShort() public {
+        vm.startPrank(address(40));
+        token.mint(address(40), 90e18);
+        perp.openPosition(90e18, 125e18, false);
+
+        assertEq(perp.getPostionSize(address(40)), 125e18);
+        assertEq(perp.getPositionCollateral(address(40)), 90e18);
+
+        perp.closePosition(address(40));
+
+        assertEq(perp.getPostionSize(address(40)), 0);
+        assertEq(perp.getPositionCollateral(address(40)), 0);
+
+        vm.stopPrank();
+    }
+
     /**
      * Unit testing the increaseSize function
      */

@@ -116,7 +116,7 @@ contract FourbPerp {
      * Getting price from chainlink data feed
      */
     function getPrice() public pure returns (uint256) {
-        uint256 currentPrice = 13; /*PriceFeed.getPrice();*/
+        uint256 currentPrice = 11; /*PriceFeed.getPrice();*/
         return currentPrice;
     }
 
@@ -166,15 +166,18 @@ contract FourbPerp {
     }
 
     function closePosition(address account) public {
+        // its supposed to `getPrice()` from chainlink
+        uint256 currentPrice = getPrice();
         uint256 fee;
+        uint256 collateral;
         Position memory position = positionDetails[account];
+        require(
+            account == msg.sender,
+            "You cannot close someone elses position"
+        );
+        require(position.size > 0, "There is no position to close");
 
         if (position.isLong == true) {
-            require(
-                account == msg.sender,
-                "You cannot close someone elses position"
-            );
-
             int256 pnl = calcPnL(account);
             if (pnl < 0) {
                 position.collateral -= uint256(pnl);
@@ -183,14 +186,32 @@ contract FourbPerp {
                 position.collateral += uint256(pnl);
                 fee = (position.collateral * 3) / 10000;
             }
-            uint256 collateral = position.collateral - fee;
+            collateral = position.collateral - fee;
             delete positionDetails[account];
 
+            s_totalOpenInterestLongTokens -= (position.size) * (currentPrice);
+            s_totalOpenInterestLong -= (position.size);
             token.transfer(msg.sender, collateral);
-            emit PositionClosed(msg.sender, collateral);
         } else {
-            revert("yet to do");
+            int256 pnl = calcPnL(account);
+            if (pnl < 0) {
+                position.collateral -= uint256(pnl);
+                fee = (position.collateral * 3) / 10000;
+            } else if (pnl >= 0) {
+                position.collateral += uint256(pnl);
+                fee = (position.collateral * 3) / 10000;
+            }
+            collateral = position.collateral - fee;
+            delete positionDetails[account];
+
+            s_totalOpenInterestShortTokens -= (position.size) * (currentPrice);
+            s_totalOpenInterestShort -= (position.size);
+
+            token.transfer(msg.sender, collateral);
         }
+        positionDetails[msg.sender] = position;
+
+        emit PositionClosed(msg.sender, collateral);
     }
 
     /**
