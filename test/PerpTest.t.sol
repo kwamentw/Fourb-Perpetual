@@ -116,6 +116,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Tests for closing of long positions
+     */
     function test_ClosePositionForLong() public {
         vm.startPrank(address(40));
         token.mint(address(40), 90e18);
@@ -132,6 +135,9 @@ contract PerpTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * Test for closing of short positions
+     */
     function test_ClosePositionForShort() public {
         vm.startPrank(address(40));
         token.mint(address(40), 90e18);

@@ -163,6 +163,7 @@ contract Handler is Test {
      */
     function increaseCollateral(uint256 _amount) public {
         _amount = bound(_amount, 0, 100e18);
+
         if (_amount > token.balanceOf(address(this))) {
             uint256 amountDelta1 = _amount - token.balanceOf(address(this));
             token.mint(address(this), amountDelta1);

@@ -116,7 +116,7 @@ contract FourbPerp {
      * Getting price from chainlink data feed
      */
     function getPrice() public pure returns (uint256) {
-        uint256 currentPrice = 11; /*PriceFeed.getPrice();*/
+        uint256 currentPrice = 9; /*PriceFeed.getPrice();*/
         return currentPrice;
     }
 
@@ -165,7 +165,10 @@ contract FourbPerp {
         updateCollateral();
     }
 
-    function closePosition(address account) public {
+    /**
+     * closes position of the provided account
+     */
+    function closePosition(address account) external {
         // its supposed to `getPrice()` from chainlink
         uint256 currentPrice = getPrice();
         uint256 fee;
@@ -429,15 +432,13 @@ contract FourbPerp {
         uint256 currentPrice = getPrice();
         uint256 entryPrice = pos.entryPrice;
         if (pos.isLong) {
-            pNl = (int256(pos.size) *
-                int256(currentPrice) -
-                int256(pos.size) *
-                int256(entryPrice));
+            pNl =
+                (int256(pos.size) * int256(currentPrice)) -
+                (int256(pos.size) * int256(entryPrice));
         } else {
-            pNl = (int256(pos.size) *
-                int256(entryPrice) -
-                int256(pos.size) *
-                int256(currentPrice));
+            pNl =
+                (int256(pos.size) * int256(entryPrice)) -
+                (int256(pos.size) * int256(currentPrice));
         }
 
         return pNl;
